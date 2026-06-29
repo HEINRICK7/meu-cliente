@@ -25,21 +25,37 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
   const businessLabel = session?.role === 'owner' ? 'Conta principal' : 'Conta conectada';
   const userLabel = session?.name || 'Usuário';
   const userEmail = session?.email || '';
+  const userPhoto = session?.photoURL;
+  const userInitials = userLabel
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
 
   return (
     <div className="screen-stack">
       <Card className="soft-card highlight-card">
         <div className="section-head">
-          <div>
-            <div className="section-label">Conta</div>
-            <div className="section-title">{businessName}</div>
+          <div className="more-account">
+            <div className="more-account__avatar">
+              {userPhoto ? (
+                <img src={userPhoto} alt="" aria-hidden="true" className="more-account__image" />
+              ) : (
+                <span>{userInitials || 'MC'}</span>
+              )}
+            </div>
+            <div>
+              <div className="section-label">Conta</div>
+              <div className="section-title">{businessName}</div>
+              <p className="muted-text" style={{ marginTop: 6 }}>
+                {userLabel}
+                {userEmail ? ` · ${userEmail}` : ''}
+              </p>
+            </div>
           </div>
         </div>
         <p className="muted-text">{businessLabel}</p>
-        <p className="muted-text" style={{ marginTop: 8 }}>
-          {userLabel}
-          {userEmail ? ` · ${userEmail}` : ''}
-        </p>
         <Button
           block
           color="primary"
