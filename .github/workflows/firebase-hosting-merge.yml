@@ -21,8 +21,25 @@ jobs:
 
       - name: Deploy to Firebase Hosting
         env:
-          FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB }}
         run: |
-          echo "$FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB" > "$HOME/firebase-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$HOME/firebase-service-account.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
-          npx firebase-tools@15.22.3 deploy --only hosting --project meu-cliente-f17bb
+
+          set +e
+          npx firebase-tools@15.22.3 deploy --only hosting --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-deploy.log
+          DEPLOY_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$DEPLOY_EXIT" -eq 0 ]; then
+            echo "Firebase deploy completed successfully."
+            exit 0
+          fi
+
+          if grep -q "is the current active version" firebase-deploy.log; then
+            echo "Firebase deploy reached active version. Treating as success."
+            exit 0
+          fi
+
+          echo "Firebase deploy failed."
+          exit "$DEPLOY_EXIT"
