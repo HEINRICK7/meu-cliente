@@ -7,6 +7,7 @@ import { LoadingState } from '../../components/LoadingState';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
+import { isFirestoreUnavailableError } from '../../services/firestoreHealth';
 import {
   formatAppointmentDate,
   isAppointmentInRange,
@@ -66,6 +67,32 @@ function sortBySchedule(left: Appointment, right: Appointment) {
   }
 
   return leftStamp - rightStamp;
+}
+
+function getSaveErrorMessage(error: unknown) {
+  if (typeof error !== 'object' || error === null) {
+    return 'Não foi possível salvar o agendamento.';
+  }
+
+  const code = 'code' in error ? String((error as { code?: string }).code) : '';
+
+  if (code.includes('permission-denied')) {
+    return 'Sem permissão para salvar este agendamento. Verifique as regras do Firebase.';
+  }
+
+  if (code.includes('unavailable')) {
+    return 'O Firebase está indisponível agora. Tente novamente.';
+  }
+
+  if (isFirestoreUnavailableError(error)) {
+    return 'O Firestore ainda não foi criado neste projeto Firebase. Crie o banco padrão para continuar salvando dados.';
+  }
+
+  if (String(error).includes('demorou demais')) {
+    return 'A operação demorou demais. Tente novamente.';
+  }
+
+  return 'Não foi possível salvar o agendamento. Tente novamente.';
 }
 
 export function ScheduleScreen() {
@@ -223,8 +250,8 @@ export function ScheduleScreen() {
         content: editingAppointment ? 'Agendamento atualizado.' : 'Agendamento criado.',
       });
       closeEditor();
-    } catch {
-      // Validation already explains what is missing.
+    } catch (error) {
+      Toast.show({ content: getSaveErrorMessage(error) });
     } finally {
       setSaving(false);
     }

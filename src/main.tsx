@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { getFirebaseMessagingConfigForServiceWorker } from './services/pushNotificationsService';
 import 'antd-mobile/es/global';
 import './styles/global.css';
 
@@ -18,7 +19,11 @@ async function registerServiceWorker() {
   }
 
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const firebaseMessagingConfig = getFirebaseMessagingConfigForServiceWorker();
+    const swUrl = firebaseMessagingConfig
+      ? `/sw.js?firebaseConfig=${encodeURIComponent(JSON.stringify(firebaseMessagingConfig))}`
+      : '/sw.js';
+    const registration = await navigator.serviceWorker.register(swUrl, { scope: '/' });
     await registration.update();
   } catch {
     // O app continua funcionando sem SW quando o ambiente não permitir registro.

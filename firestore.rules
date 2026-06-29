@@ -10,6 +10,12 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function currentBusinessId(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid))
+        ? get(/databases/$(database)/documents/users/$(uid)).data.businessId
+        : uid;
+    }
+
     match /users/{userId} {
       allow read, create, update, delete: if isOwner(userId);
     }
@@ -22,37 +28,37 @@ service cloud.firestore {
     match /clients/{clientId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.businessId == request.auth.uid;
+        && request.resource.data.businessId == currentBusinessId(request.auth.uid);
       allow read, update, delete: if signedIn()
         && resource.data.ownerId == request.auth.uid
-        && resource.data.businessId == request.auth.uid;
+        && resource.data.businessId == currentBusinessId(request.auth.uid);
     }
 
     match /appointments/{appointmentId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.businessId == request.auth.uid;
+        && request.resource.data.businessId == currentBusinessId(request.auth.uid);
       allow read, update, delete: if signedIn()
         && resource.data.ownerId == request.auth.uid
-        && resource.data.businessId == request.auth.uid;
+        && resource.data.businessId == currentBusinessId(request.auth.uid);
     }
 
     match /attendances/{attendanceId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.businessId == request.auth.uid;
+        && request.resource.data.businessId == currentBusinessId(request.auth.uid);
       allow read, update, delete: if signedIn()
         && resource.data.ownerId == request.auth.uid
-        && resource.data.businessId == request.auth.uid;
+        && resource.data.businessId == currentBusinessId(request.auth.uid);
     }
 
     match /attachments/{attachmentId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.businessId == request.auth.uid;
+        && request.resource.data.businessId == currentBusinessId(request.auth.uid);
       allow read, update, delete: if signedIn()
         && resource.data.ownerId == request.auth.uid
-        && resource.data.businessId == request.auth.uid;
+        && resource.data.businessId == currentBusinessId(request.auth.uid);
     }
 
     match /{document=**} {
