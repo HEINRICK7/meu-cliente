@@ -11,7 +11,14 @@ import { ClientsScreen } from './features/clients/ClientsScreen';
 import { ScheduleScreen } from './features/schedule/ScheduleScreen';
 import { AttendancesScreen } from './features/attendances/AttendancesScreen';
 import { MoreScreen } from './features/more/MoreScreen';
-import { getAuthErrorMessage, signInWithGoogle, signOut } from './services/authService';
+import {
+  getAuthErrorMessage,
+  signInWithEmail,
+  signInWithGoogle,
+  signOut,
+  signUpWithEmail,
+} from './services/authService';
+import type { AuthFormValues } from './features/auth/AuthScreen';
 import type { AppRoute, AuthRoute, Route } from './types/domain';
 
 const screens: Record<AppRoute, (onLogout: () => void) => JSX.Element> = {
@@ -75,6 +82,34 @@ export default function App() {
     }
   };
 
+  const handleEmailLogin = async (values: AuthFormValues) => {
+    setAuthBusy(true);
+
+    try {
+      await signInWithEmail(values.email, values.password);
+      navigate('inicio');
+    } catch (error) {
+      Toast.show({ content: getAuthErrorMessage(error) });
+      throw error;
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  const handleEmailSignup = async (values: AuthFormValues) => {
+    setAuthBusy(true);
+
+    try {
+      await signUpWithEmail(values.email, values.password, values.name || '');
+      navigate('inicio');
+    } catch (error) {
+      Toast.show({ content: getAuthErrorMessage(error) });
+      throw error;
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
   if (loading) {
     return <LoadingState lines={2} />;
   }
@@ -83,9 +118,19 @@ export default function App() {
     const authRoute = authRouteFrom(route);
 
     return authRoute === 'cadastro' ? (
-      <SignupScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('entrar')} isBusy={authBusy} />
+      <SignupScreen
+        onGoogle={handleGoogleSignIn}
+        onEmailSubmit={handleEmailSignup}
+        onSwitchMode={() => navigate('entrar')}
+        isBusy={authBusy}
+      />
     ) : (
-      <LoginScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('cadastro')} isBusy={authBusy} />
+      <LoginScreen
+        onGoogle={handleGoogleSignIn}
+        onEmailSubmit={handleEmailLogin}
+        onSwitchMode={() => navigate('cadastro')}
+        isBusy={authBusy}
+      />
     );
   }
 
