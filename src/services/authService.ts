@@ -1,4 +1,10 @@
-import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut, type User as FirebaseUser } from 'firebase/auth';
+import {
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut as firebaseSignOut,
+  type User as FirebaseUser,
+} from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, ensureAuthPersistence, firebaseReady, googleAuthProvider } from '../firebase/client';
 import type { AuthSession, UserRole } from '../types/domain';
@@ -14,9 +20,25 @@ function displayNameFor(user: FirebaseUser) {
   return user.displayName?.trim() || user.email?.split('@')[0]?.trim() || 'Usuário';
 }
 
-async function ensureUserDocuments(user: FirebaseUser): Promise<AuthSession> {
+function buildAuthSession(user: FirebaseUser, existingUser?: Record<string, unknown> | null, timestamp = nowIso()): AuthSession {
+  return {
+    id: user.uid,
+    name: (existingUser?.name as string | undefined) || displayNameFor(user),
+    email: (existingUser?.email as string | undefined) || user.email?.trim() || '',
+    provider: 'google',
+    businessId: (existingUser?.businessId as string | undefined) || user.uid,
+    businessName:
+      (existingUser?.businessName as string | undefined) ||
+      `${displayNameFor(user)} Studio`,
+    role: (existingUser?.role as UserRole | undefined) || 'owner',
+    photoURL: user.photoURL || undefined,
+    createdAt: (existingUser?.createdAt as string | undefined) || timestamp,
+  };
+}
+
+async function syncUserDocuments(user: FirebaseUser) {
   if (!firebaseReady || !auth || !db) {
-    throw new Error('Firebase não está configurado neste ambiente.');
+    return buildAuthSession(user);
   }
 
   const timestamp = nowIso();
@@ -66,17 +88,22 @@ async function ensureUserDocuments(user: FirebaseUser): Promise<AuthSession> {
     );
   }
 
-  return {
-    id: user.uid,
-    name: (existingUser?.name as string | undefined) || displayNameFor(user),
-    email: (existingUser?.email as string | undefined) || user.email?.trim() || '',
-    provider: 'google',
-    businessId,
-    businessName,
-    role: (existingUser?.role as UserRole | undefined) || 'owner',
-    photoURL: user.photoURL || undefined,
-    createdAt: (existingUser?.createdAt as string | undefined) || timestamp,
-  };
+  const sessionData = existingUser ? { ...existingUser, businessId, businessName } : { businessId, businessName };
+  return buildAuthSession(user, sessionData, timestamp);
+}
+
+function shouldFallbackToRedirect(error: unknown) {
+  if (typeof error !== 'object' || error === null) {
+    return false;
+  }
+
+  const code = 'code' in error ? String((error as { code?: string }).code) : '';
+
+  return (
+    code.includes('auth/popup-blocked') ||
+    code.includes('auth/operation-not-supported-in-this-environment') ||
+    code.includes('auth/web-storage-unsupported')
+  );
 }
 
 export function listenToAuthSession(onChange: (session: AuthSession | null) => void) {
@@ -91,8 +118,10 @@ export function listenToAuthSession(onChange: (session: AuthSession | null) => v
       return;
     }
 
-    const session = await ensureUserDocuments(user);
+    const session = buildAuthSession(user);
     onChange(session);
+
+    void syncUserDocuments(user).catch(() => undefined);
   });
 }
 
@@ -102,8 +131,20 @@ export async function signInWithGoogle() {
   }
 
   await ensureAuthPersistence();
-  const credential = await signInWithPopup(auth, googleAuthProvider);
-  return ensureUserDocuments(credential.user);
+
+  try {
+    const credential = await signInWithPopup(auth, googleAuthProvider);
+    const session = buildAuthSession(credential.user);
+    void syncUserDocuments(credential.user).catch(() => undefined);
+    return { mode: 'popup' as const, session };
+  } catch (error) {
+    if (!shouldFallbackToRedirect(error)) {
+      throw error;
+    }
+
+    await signInWithRedirect(auth, googleAuthProvider);
+    return { mode: 'redirect' as const };
+  }
 }
 
 export async function signOut() {
@@ -141,5 +182,5 @@ export function getAuthErrorMessage(error: unknown) {
     return 'O Firebase ainda não está configurado neste ambiente.';
   }
 
-  return 'Não foi possível autenticar agora.';
+  return 'Não foi possível entrar com Google. Tente novamente.';
 }

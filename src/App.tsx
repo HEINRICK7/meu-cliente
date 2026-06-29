@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Toast } from 'antd-mobile';
 import { AppShell } from './components/AppShell';
 import { LoadingState } from './components/LoadingState';
@@ -33,6 +33,7 @@ function authRouteFrom(route: Route): AuthRoute {
 export default function App() {
   const { route, navigate } = useHashRoute();
   const { session, loading } = useAuth();
+  const [authBusy, setAuthBusy] = useState(false);
 
   useEffect(() => {
     if (loading) {
@@ -59,12 +60,18 @@ export default function App() {
   };
 
   const handleGoogleSignIn = async () => {
+    setAuthBusy(true);
+
     try {
-      Toast.show({ content: 'Conectando com Google...' });
-      await signInWithGoogle();
-      navigate('inicio');
+      const result = await signInWithGoogle();
+
+      if (result.mode === 'popup') {
+        navigate('inicio');
+      }
     } catch (error) {
       Toast.show({ content: getAuthErrorMessage(error) });
+    } finally {
+      setAuthBusy(false);
     }
   };
 
@@ -76,9 +83,9 @@ export default function App() {
     const authRoute = authRouteFrom(route);
 
     return authRoute === 'cadastro' ? (
-      <SignupScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('entrar')} />
+      <SignupScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('entrar')} isBusy={authBusy} />
     ) : (
-      <LoginScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('cadastro')} />
+      <LoginScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('cadastro')} isBusy={authBusy} />
     );
   }
 
