@@ -1,8 +1,11 @@
 import {
+  createUserWithEmailAndPassword,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   signOut as firebaseSignOut,
+  updateProfile,
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
@@ -20,12 +23,21 @@ function displayNameFor(user: FirebaseUser) {
   return user.displayName?.trim() || user.email?.split('@')[0]?.trim() || 'Usuário';
 }
 
-function buildAuthSession(user: FirebaseUser, existingUser?: Record<string, unknown> | null, timestamp = nowIso()): AuthSession {
+function providerForUser(user: FirebaseUser) {
+  return user.providerData.some((provider) => provider.providerId === 'password') ? 'email' : 'google';
+}
+
+function buildAuthSession(
+  user: FirebaseUser,
+  existingUser?: Record<string, unknown> | null,
+  timestamp = nowIso(),
+  provider: AuthSession['provider'] = providerForUser(user),
+): AuthSession {
   return {
     id: user.uid,
     name: (existingUser?.name as string | undefined) || displayNameFor(user),
     email: (existingUser?.email as string | undefined) || user.email?.trim() || '',
-    provider: 'google',
+    provider,
     businessId: (existingUser?.businessId as string | undefined) || user.uid,
     businessName:
       (existingUser?.businessName as string | undefined) ||
@@ -36,9 +48,9 @@ function buildAuthSession(user: FirebaseUser, existingUser?: Record<string, unkn
   };
 }
 
-async function syncUserDocuments(user: FirebaseUser) {
+async function syncUserDocuments(user: FirebaseUser, provider: AuthSession['provider'] = providerForUser(user)) {
   if (!firebaseReady || !auth || !db) {
-    return buildAuthSession(user);
+    return buildAuthSession(user, null, nowIso(), provider);
   }
 
   const timestamp = nowIso();
@@ -89,7 +101,7 @@ async function syncUserDocuments(user: FirebaseUser) {
   }
 
   const sessionData = existingUser ? { ...existingUser, businessId, businessName } : { businessId, businessName };
-  return buildAuthSession(user, sessionData, timestamp);
+  return buildAuthSession(user, sessionData, timestamp, provider);
 }
 
 function shouldFallbackToRedirect(error: unknown) {
@@ -135,8 +147,8 @@ export async function signInWithGoogle() {
 
   try {
     const credential = await signInWithPopup(auth, googleAuthProvider);
-    const session = buildAuthSession(credential.user);
-    void syncUserDocuments(credential.user).catch(() => undefined);
+    const session = buildAuthSession(credential.user, null, nowIso(), 'google');
+    void syncUserDocuments(credential.user, 'google').catch(() => undefined);
     return { mode: 'popup' as const, session };
   } catch (error) {
     if (!shouldFallbackToRedirect(error)) {
@@ -146,6 +158,43 @@ export async function signInWithGoogle() {
     await signInWithRedirect(auth, googleAuthProvider);
     return { mode: 'redirect' as const };
   }
+}
+
+export async function signInWithEmail(email: string, password: string) {
+  if (!firebaseReady || !auth) {
+    throw new Error('Firebase não está configurado neste ambiente.');
+  }
+
+  await ensureAuthPersistence();
+
+  const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+  const session = buildAuthSession(credential.user, null, nowIso(), 'email');
+  void syncUserDocuments(credential.user, 'email').catch(() => undefined);
+  return session;
+}
+
+export async function signUpWithEmail(email: string, password: string, name: string) {
+  if (!firebaseReady || !auth) {
+    throw new Error('Firebase não está configurado neste ambiente.');
+  }
+
+  await ensureAuthPersistence();
+
+  const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+  const trimmedName = name.trim();
+
+  if (trimmedName) {
+    await updateProfile(credential.user, { displayName: trimmedName });
+  }
+
+  const session = buildAuthSession(
+    credential.user,
+    trimmedName ? { name: trimmedName } : null,
+    nowIso(),
+    'email',
+  );
+  void syncUserDocuments(credential.user, 'email').catch(() => undefined);
+  return session;
 }
 
 export async function signOut() {
@@ -188,8 +237,32 @@ export function getAuthErrorMessage(error: unknown) {
   }
 
   if (code.includes('auth/network-request-failed')) {
-    return 'Falha de rede ao tentar entrar com Google. Tente novamente.';
+    return 'Falha de rede ao tentar autenticar. Tente novamente.';
   }
 
-  return 'Não foi possível entrar com Google. Tente novamente.';
+  if (code.includes('auth/invalid-email')) {
+    return 'O e-mail informado não é válido.';
+  }
+
+  if (code.includes('auth/user-not-found')) {
+    return 'Não encontramos uma conta com esse e-mail.';
+  }
+
+  if (code.includes('auth/wrong-password')) {
+    return 'A senha informada está incorreta.';
+  }
+
+  if (code.includes('auth/email-already-in-use')) {
+    return 'Já existe uma conta com esse e-mail.';
+  }
+
+  if (code.includes('auth/weak-password')) {
+    return 'Use uma senha com pelo menos 6 caracteres.';
+  }
+
+  if (code.includes('auth/too-many-requests')) {
+    return 'Muitas tentativas. Tente novamente em instantes.';
+  }
+
+  return 'Não foi possível autenticar agora. Tente novamente.';
 }

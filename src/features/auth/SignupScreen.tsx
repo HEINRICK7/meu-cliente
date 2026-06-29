@@ -1,20 +1,20 @@
 import { AuthScreen } from './AuthScreen';
-import { Toast } from 'antd-mobile';
+import type { AuthFormValues } from './AuthScreen';
 
 type SignupScreenProps = {
   onGoogle: () => void;
+  onEmailSubmit: (values: AuthFormValues) => Promise<void>;
   onSwitchMode: () => void;
   isBusy?: boolean;
 };
 
-export function SignupScreen({ onGoogle, onSwitchMode, isBusy = false }: SignupScreenProps) {
+export function SignupScreen({ onGoogle, onEmailSubmit, onSwitchMode, isBusy = false }: SignupScreenProps) {
   return (
     <AuthScreen
       mode="signup"
       onGoogle={onGoogle}
-      onSwitchMode={() => {
-        Toast.show({ content: 'Login em breve' });
-      }}
+      onEmailSubmit={onEmailSubmit}
+      onSwitchMode={onSwitchMode}
       isBusy={isBusy}
     />
   );

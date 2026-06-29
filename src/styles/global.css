@@ -901,15 +901,17 @@ button {
 }
 
 .auth-card .adm-card-body {
-  padding: 22px 18px 18px;
+  padding: 22px 18px 20px;
 }
 
 .auth-brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   color: inherit;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
+  text-align: left;
 }
 
 .auth-brand__badge {
@@ -953,13 +955,17 @@ button {
   letter-spacing: -0.05em;
   font-weight: 800;
   color: var(--mc-text);
+  text-align: center;
 }
 
 .auth-subtitle {
   margin: 10px 0 0;
-  max-width: 28ch;
+  max-width: 30ch;
   line-height: 1.5;
   color: var(--mc-text-soft);
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .auth-social-list {
@@ -979,43 +985,56 @@ button {
   box-shadow: 0 10px 22px rgba(17, 17, 17, 0.05);
   justify-content: flex-start;
   gap: 12px;
+  font-weight: 700;
 }
 
 .auth-social-button .adm-button-content {
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-social-button__inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   width: 100%;
 }
 
 .auth-social__icon {
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   border-radius: 999px;
   display: grid;
   place-items: center;
-  font-size: 14px;
-  font-weight: 800;
   flex: none;
+  overflow: hidden;
+  background: transparent;
+}
+
+.auth-social__icon-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .auth-social__icon--google {
-  background:
-    radial-gradient(circle at 30% 30%, #fff 0 18%, transparent 18%),
-    conic-gradient(#4285f4 0 25%, #34a853 25% 50%, #fbbc05 50% 75%, #ea4335 75% 100%);
-  color: #fff;
+  background: transparent;
 }
 
-.auth-social__icon--apple {
-  background: #111;
-  color: #fff;
-}
-
+.auth-social__icon--apple,
 .auth-social__icon--facebook {
-  background: #1877f2;
-  color: #fff;
+  background: transparent;
 }
 
 .auth-social-button__text {
   font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
 }
 
 .auth-divider {
@@ -1058,7 +1077,7 @@ button {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 14px;
   color: var(--mc-text-soft);
 }
 
@@ -1075,6 +1094,67 @@ button {
 
 .auth-footer__text--center {
   text-align: center;
+}
+
+.auth-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.auth-popup__handle {
+  width: 44px;
+  height: 4px;
+  border-radius: 999px;
+  margin: 0 auto 4px;
+  background: rgba(17, 17, 17, 0.16);
+}
+
+.auth-popup__title {
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 800;
+  color: var(--mc-text);
+}
+
+.auth-popup__subtitle {
+  margin: 0 0 8px;
+  color: var(--mc-text-soft);
+  line-height: 1.5;
+}
+
+.auth-form .adm-list-header {
+  display: none;
+}
+
+.auth-form .adm-list-body {
+  border: 0;
+  background: transparent;
+}
+
+.auth-form .adm-list-item {
+  background: transparent;
+  border: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.auth-form .adm-list-item-content {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.auth-form .adm-form-item-label {
+  color: var(--mc-text);
+  font-weight: 700;
+}
+
+.auth-form .adm-input {
+  min-height: 52px;
+  border-radius: 16px;
+  border: 1px solid var(--mc-border);
+  background: #fff;
+  padding-inline: 14px;
 }
 
 @media (min-width: 720px) {

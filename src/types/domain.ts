@@ -1,7 +1,7 @@
 export type AppRoute = 'inicio' | 'clientes' | 'agenda' | 'atendimentos' | 'mais';
 export type AuthRoute = 'entrar' | 'cadastro';
 export type Route = AppRoute | AuthRoute;
-export type SocialProvider = 'google';
+export type SocialProvider = 'google' | 'email';
 
 export type ClientStatus = 'ativo' | 'inativo';
 export type AppointmentStatus = 'agendado' | 'confirmado' | 'atendido' | 'cancelado' | 'faltou';
