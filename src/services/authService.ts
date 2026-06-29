@@ -101,22 +101,10 @@ function shouldFallbackToRedirect(error: unknown) {
 
   return (
     code.includes('auth/popup-blocked') ||
+    code.includes('auth/popup-closed-by-user') ||
     code.includes('auth/operation-not-supported-in-this-environment') ||
-    code.includes('auth/web-storage-unsupported') ||
-    code.includes('auth/internal-error') ||
-    code.includes('auth/network-request-failed')
+    code.includes('auth/web-storage-unsupported')
   );
-}
-
-function shouldPreferRedirect() {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  const isStandalonePwa = window.matchMedia('(display-mode: standalone)').matches || 'standalone' in window.navigator;
-  const isNarrowViewport = window.matchMedia('(max-width: 767px)').matches;
-
-  return isStandalonePwa || isNarrowViewport;
 }
 
 export function listenToAuthSession(onChange: (session: AuthSession | null) => void) {
@@ -144,11 +132,6 @@ export async function signInWithGoogle() {
   }
 
   await ensureAuthPersistence();
-
-  if (shouldPreferRedirect()) {
-    await signInWithRedirect(auth, googleAuthProvider);
-    return { mode: 'redirect' as const };
-  }
 
   try {
     const credential = await signInWithPopup(auth, googleAuthProvider);
@@ -180,7 +163,7 @@ export function getAuthErrorMessage(error: unknown) {
 
   const code = 'code' in error ? String((error as { code?: string }).code) : '';
 
-  if (code.includes('popup-closed-by-user')) {
+  if (code.includes('auth/popup-closed-by-user')) {
     return 'O login com Google foi cancelado.';
   }
 
@@ -196,8 +179,16 @@ export function getAuthErrorMessage(error: unknown) {
     return 'Este domínio não está autorizado no Firebase. Verifique a lista de domínios permitidos.';
   }
 
-  if (code.includes('invalid-api-key')) {
+  if (code.includes('auth/api-key-not-valid') || code.includes('auth/invalid-api-key')) {
     return 'A configuração do Firebase está inválida neste ambiente.';
+  }
+
+  if (code.includes('auth/operation-not-allowed')) {
+    return 'O login com Google não está habilitado neste projeto Firebase.';
+  }
+
+  if (code.includes('auth/network-request-failed')) {
+    return 'Falha de rede ao tentar entrar com Google. Tente novamente.';
   }
 
   return 'Não foi possível entrar com Google. Tente novamente.';
