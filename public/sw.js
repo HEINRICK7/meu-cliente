@@ -35,9 +35,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+    return;
+  }
+
   const requestUrl = new URL(event.request.url);
 
   if (requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
+  if (
+    requestUrl.pathname.startsWith('/@vite/') ||
+    requestUrl.pathname.startsWith('/@react-refresh') ||
+    requestUrl.pathname.startsWith('/src/') ||
+    requestUrl.pathname.startsWith('/node_modules/')
+  ) {
     return;
   }
 

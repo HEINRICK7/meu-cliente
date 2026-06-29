@@ -6,6 +6,10 @@ import './styles/global.css';
 
 async function registerServiceWorker() {
   if (import.meta.env.DEV) {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(registrations.map((registration) => registration.unregister()));
+    }
     return;
   }
 
