@@ -46,6 +46,12 @@ function formatDateLabel(date: Date | null) {
   return date.toLocaleDateString('pt-BR');
 }
 
+function goToRoute(route: 'clientes' | 'agenda') {
+  if (typeof window !== 'undefined') {
+    window.location.hash = `#/${route}`;
+  }
+}
+
 export function AttendancesScreen() {
   const { session } = useAuth();
   const { clients } = useClients(session?.businessId ?? null, session?.id ?? null);
@@ -98,6 +104,16 @@ export function AttendancesScreen() {
     }
 
     setEditorVisible(true);
+  }
+
+  function openQuickTemplate() {
+    openCreateAttendance();
+    form.setFieldsValue({
+      clientName: form.getFieldValue('clientName') || '',
+      title: 'Sessão realizada',
+      description: 'Resumo rápido do atendimento realizado hoje.',
+      nextAction: 'Retorno conforme combinado',
+    });
   }
 
   function openEditAttendance(attendance: Attendance) {
@@ -212,20 +228,12 @@ export function AttendancesScreen() {
             <span>Próxima ação</span>
           </div>
         </div>
-        <div className="quick-actions-grid" style={{ marginTop: 16 }}>
+          <div className="quick-actions-grid" style={{ marginTop: 16 }}>
           <Button block color="primary" fill="solid" shape="rounded" onClick={openCreateAttendance}>
             <ChatAddOutline />
             Registrar atendimento
           </Button>
-          <Button
-            block
-            color="primary"
-            fill="outline"
-            shape="rounded"
-            onClick={() => {
-              Toast.show({ content: 'Modelo rápido virá depois.' });
-            }}
-          >
+          <Button block color="primary" fill="outline" shape="rounded" onClick={openQuickTemplate}>
             <ClockCircleOutline />
             Modelo rápido
           </Button>
@@ -275,19 +283,15 @@ export function AttendancesScreen() {
         </div>
         <List className="compact-list">
           <List.Item
-            onClick={() => {
-              Toast.show({ content: 'Abrir histórico do cliente será integrado depois.' });
-            }}
+            onClick={() => goToRoute('clientes')}
           >
             <span className="more-list__item">
               <MessageOutline />
-              <span>Abrir histórico do cliente</span>
+              <span>Abrir clientes</span>
             </span>
           </List.Item>
           <List.Item
-            onClick={() => {
-              Toast.show({ content: 'Editar modelo será integrado depois.' });
-            }}
+            onClick={openQuickTemplate}
           >
             <span className="more-list__item">
               <EditSOutline />
@@ -302,9 +306,7 @@ export function AttendancesScreen() {
         color="primary"
         fill="outline"
         shape="rounded"
-        onClick={() => {
-          Toast.show({ content: 'Novo modelo de atendimento em breve.' });
-        }}
+        onClick={openQuickTemplate}
       >
         Criar modelo rápido
       </Button>
