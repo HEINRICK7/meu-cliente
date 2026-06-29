@@ -25,7 +25,6 @@ export function useClients(businessId: string | null, ownerId: string | null): U
     setLoading(true);
     const unsubscribe = listenClients(
       businessId,
-      ownerId,
       (nextClients) => {
         setClients(nextClients);
         setLoading(false);
@@ -39,7 +38,7 @@ export function useClients(businessId: string | null, ownerId: string | null): U
     );
 
     return () => unsubscribe();
-  }, [businessId]);
+  }, [businessId, ownerId]);
 
   const sortedClients = useMemo(
     () => [...clients].sort((left, right) => (right.createdAt || '').localeCompare(left.createdAt || '')),
