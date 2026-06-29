@@ -27,6 +27,7 @@ import { useAttendances } from '../../hooks/useAttendances';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
 import { formatAttendanceDate, isAttendanceOnDay } from '../../services/attendancesService';
+import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Attendance, AttendanceUpsertInput } from '../../types/domain';
 
 type AttendanceFormValues = {
@@ -37,39 +38,18 @@ type AttendanceFormValues = {
   appointmentId?: string;
 };
 
-function pad(value: number) {
-  return `${value}`.padStart(2, '0');
-}
-
-function toDateKey(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function parseStoredDate(value: string) {
-  const trimmed = value.trim();
-
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const brazilianMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-  if (brazilianMatch) {
-    const [, day, month, year] = brazilianMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function formatDateLabel(date: Date | null) {
   if (!date) {
     return 'Selecionar data';
   }
 
   return date.toLocaleDateString('pt-BR');
+}
+
+function goToRoute(route: 'clientes' | 'agenda') {
+  if (typeof window !== 'undefined') {
+    window.location.hash = `#/${route}`;
+  }
 }
 
 export function AttendancesScreen() {
@@ -126,10 +106,20 @@ export function AttendancesScreen() {
     setEditorVisible(true);
   }
 
+  function openQuickTemplate() {
+    openCreateAttendance();
+    form.setFieldsValue({
+      clientName: form.getFieldValue('clientName') || '',
+      title: 'Sessão realizada',
+      description: 'Resumo rápido do atendimento realizado hoje.',
+      nextAction: 'Retorno conforme combinado',
+    });
+  }
+
   function openEditAttendance(attendance: Attendance) {
     setEditingAttendance(attendance);
     setSelectedClientId(attendance.clientId);
-    setSelectedDate(parseStoredDate(attendance.date));
+    setSelectedDate(parseCalendarDate(attendance.date));
     form.setFieldsValue({
       clientName: attendance.clientName,
       title: attendance.title,
@@ -238,20 +228,12 @@ export function AttendancesScreen() {
             <span>Próxima ação</span>
           </div>
         </div>
-        <div className="quick-actions-grid" style={{ marginTop: 16 }}>
+          <div className="quick-actions-grid" style={{ marginTop: 16 }}>
           <Button block color="primary" fill="solid" shape="rounded" onClick={openCreateAttendance}>
             <ChatAddOutline />
             Registrar atendimento
           </Button>
-          <Button
-            block
-            color="primary"
-            fill="outline"
-            shape="rounded"
-            onClick={() => {
-              Toast.show({ content: 'Modelo rápido virá depois.' });
-            }}
-          >
+          <Button block color="primary" fill="outline" shape="rounded" onClick={openQuickTemplate}>
             <ClockCircleOutline />
             Modelo rápido
           </Button>
@@ -301,19 +283,15 @@ export function AttendancesScreen() {
         </div>
         <List className="compact-list">
           <List.Item
-            onClick={() => {
-              Toast.show({ content: 'Abrir histórico do cliente será integrado depois.' });
-            }}
+            onClick={() => goToRoute('clientes')}
           >
             <span className="more-list__item">
               <MessageOutline />
-              <span>Abrir histórico do cliente</span>
+              <span>Abrir clientes</span>
             </span>
           </List.Item>
           <List.Item
-            onClick={() => {
-              Toast.show({ content: 'Editar modelo será integrado depois.' });
-            }}
+            onClick={openQuickTemplate}
           >
             <span className="more-list__item">
               <EditSOutline />
@@ -328,9 +306,7 @@ export function AttendancesScreen() {
         color="primary"
         fill="outline"
         shape="rounded"
-        onClick={() => {
-          Toast.show({ content: 'Novo modelo de atendimento em breve.' });
-        }}
+        onClick={openQuickTemplate}
       >
         Criar modelo rápido
       </Button>

@@ -1,20 +1,14 @@
-import { CalendarOutline, UserAddOutline } from 'antd-mobile-icons';
-import { Card, Tag, Toast } from 'antd-mobile';
-import { useMemo } from 'react';
+import { CalendarOutline, MessageOutline, UserAddOutline } from 'antd-mobile-icons';
+import { Button, Card, Empty, Tag } from 'antd-mobile';
+import { useEffect, useMemo, useState } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
 import { ClientCard } from '../../components/ClientCard';
 import { LoadingState } from '../../components/LoadingState';
-import { QuickActionButton } from '../../components/QuickActionButton';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
-import { isAppointmentOnDay } from '../../services/appointmentsService';
-
-function showSoonFeedback(action: string) {
-  void Toast.show({
-    content: `${action} será integrado depois.`,
-  });
-}
+import { compareAppointmentsBySchedule, isAppointmentOnDay } from '../../services/appointmentsService';
+import { formatCalendarDate, toDateKey } from '../../utils/date';
 
 function statusColor(status: string) {
   if (status === 'confirmado') {
@@ -40,11 +34,22 @@ function statusColor(status: string) {
   return 'default';
 }
 
-function todayKey() {
-  const today = new Date();
-  const pad = (value: number) => `${value}`.padStart(2, '0');
+function goToRoute(route: 'agenda' | 'atendimentos' | 'clientes') {
+  if (typeof window !== 'undefined') {
+    window.location.hash = `#/${route}`;
+  }
+}
 
-  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+function buildWeekDays(referenceDate: Date) {
+  const start = new Date(referenceDate);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return date;
+  });
 }
 
 export function HomeScreen() {
@@ -54,12 +59,16 @@ export function HomeScreen() {
     session?.businessId ?? null,
     session?.id ?? null,
   );
+  const [selectedDay, setSelectedDay] = useState(() => {
+    const day = new Date();
+    day.setHours(0, 0, 0, 0);
+    return day;
+  });
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
 
   const summary = useMemo(() => {
     const todayAppointments = appointments.filter((appointment) => isAppointmentOnDay(appointment.date));
-    const upcomingAppointments = appointments.filter(
-      (appointment) => appointment.date > todayKey(),
-    );
+    const upcomingAppointments = appointments.filter((appointment) => appointment.date > toDateKey(new Date()));
 
     return {
       todayAppointments: todayAppointments.length,
@@ -71,11 +80,33 @@ export function HomeScreen() {
   }, [appointments]);
 
   const todayAppointments = useMemo(
-    () => appointments.filter((appointment) => isAppointmentOnDay(appointment.date)),
+    () => [...appointments.filter((appointment) => isAppointmentOnDay(appointment.date))].sort(compareAppointmentsBySchedule),
     [appointments],
   );
+  const weekDays = useMemo(() => buildWeekDays(new Date()), []);
   const recentClients = useMemo(() => clients.slice(0, 2), [clients]);
-  const nextAppointment = useMemo(() => todayAppointments[0] || appointments[0] || null, [appointments, todayAppointments]);
+  const selectedDayAppointments = useMemo(
+    () =>
+      [...appointments]
+        .filter((appointment) => isAppointmentOnDay(appointment.date, selectedDay))
+        .sort(compareAppointmentsBySchedule),
+    [appointments, selectedDay],
+  );
+  const selectedAppointment = useMemo(
+    () => selectedDayAppointments.find((appointment) => appointment.id === selectedAppointmentId) || selectedDayAppointments[0] || null,
+    [selectedAppointmentId, selectedDayAppointments],
+  );
+
+  useEffect(() => {
+    if (selectedDayAppointments.length === 0) {
+      setSelectedAppointmentId(null);
+      return;
+    }
+
+    if (!selectedAppointmentId || !selectedDayAppointments.some((appointment) => appointment.id === selectedAppointmentId)) {
+      setSelectedAppointmentId(selectedDayAppointments[0].id);
+    }
+  }, [selectedAppointmentId, selectedDayAppointments]);
 
   if (appointmentsLoading || clientsLoading) {
     return <LoadingState lines={3} />;
@@ -83,106 +114,143 @@ export function HomeScreen() {
 
   return (
     <div className="screen-stack">
-      <Card className="soft-card hero-meeting-card">
-        <div className="hero-meeting-card__top">
-              <div className="hero-meeting-card__welcome">
-            <div className="hero-meeting-card__avatar">MC</div>
-            <div>
-              <div className="hero-meeting-card__eyebrow">Bem-vindo de volta 👋</div>
-              <div className="hero-meeting-card__text">Vamos fazer de hoje um dia produtivo.</div>
+      <Card className="soft-card home-today-card">
+        <div className="section-head">
+          <div>
+            <div className="section-label">Atendimentos de hoje</div>
+            <div className="section-title">
+              {todayAppointments.length > 0
+                ? `Você tem ${todayAppointments.length} atendimento${todayAppointments.length === 1 ? '' : 's'}`
+                : 'Nenhum atendimento hoje'}
             </div>
           </div>
-          <div className="hero-meeting-card__tools" aria-hidden="true">
-            <button type="button" className="icon-chip icon-chip--light">
-              +
-            </button>
-            <button type="button" className="icon-chip icon-chip--light">
-              ◌
-            </button>
-          </div>
+          <Button size="small" fill="outline" shape="rounded" onClick={() => goToRoute('agenda')}>
+            Ver todos
+          </Button>
         </div>
 
-        <div className="hero-meeting-card__month-row">
-            <div>
-            <div className="hero-meeting-card__month">
-              {new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date())}
-            </div>
-            <div className="hero-meeting-card__subline">
-              {summary.todayAppointments} atendimento{summary.todayAppointments === 1 ? '' : 's'} hoje
-            </div>
+        {todayAppointments.length === 0 ? (
+          <Empty description="Nenhum atendimento agendado para hoje." />
+        ) : (
+          <div className="home-appointments-grid">
+            {todayAppointments.slice(0, 3).map((appointment) => (
+              <button
+                key={appointment.id}
+                type="button"
+                className="home-appointment-tile"
+                onClick={() => {
+                  setSelectedDay(new Date());
+                  setSelectedAppointmentId(appointment.id);
+                }}
+              >
+                <span className="home-appointment-tile__time">{appointment.time}</span>
+                <strong>{appointment.clientName}</strong>
+                <span>{appointment.serviceType}</span>
+              </button>
+            ))}
           </div>
-          <Tag color="success" fill="outline">
-            Dados reais
-          </Tag>
+        )}
+      </Card>
+
+      <Card className="soft-card hero-calendar-card">
+        <div className="section-head">
+          <div>
+            <div className="section-label">Agenda da semana</div>
+            <div className="section-title">{formatCalendarDate(toDateKey(selectedDay))}</div>
+          </div>
+          <Button size="small" fill="outline" shape="rounded" onClick={() => goToRoute('agenda')}>
+            Ver agenda
+          </Button>
         </div>
 
-        <div className="hero-meeting-card__calendar" aria-hidden="true">
-          {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, index) => {
-            const active = index === new Date().getDay();
-            const dayNumber = [12, 13, 14, 15, 16, 17, 18][index];
-
+        <div className="hero-day-row" role="tablist" aria-label="Selecionar dia">
+          {weekDays.map((date) => {
+            const isActive = toDateKey(date) === toDateKey(selectedDay);
             return (
-              <div key={day} className={active ? 'day-pill day-pill--active' : 'day-pill'}>
-                <span className="day-pill__label">{day}</span>
-                <span className="day-pill__value">{dayNumber}</span>
-              </div>
+              <button
+                key={toDateKey(date)}
+                type="button"
+                className={isActive ? 'hero-day-chip hero-day-chip--active' : 'hero-day-chip'}
+                onClick={() => setSelectedDay(date)}
+              >
+                <span>{date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
+                <strong>{date.getDate()}</strong>
+              </button>
             );
           })}
         </div>
-      </Card>
 
-      <div className="metrics-grid">
-        <Card className="soft-card metric-card metric-card--yellow">
-          <div className="metric-card__value">{summary.todayAppointments}</div>
-          <div className="metric-card__label">Atendimentos hoje</div>
-        </Card>
-        <Card className="soft-card metric-card">
-          <div className="metric-card__value">{summary.nextAppointments}</div>
-          <div className="metric-card__label">Próximos agendamentos</div>
-        </Card>
-        <Card className="soft-card metric-card">
-          <div className="metric-card__value">{summary.pendingFollowUps}</div>
-          <div className="metric-card__label">Pendências</div>
-        </Card>
-      </div>
-
-      <Card className="soft-card highlight-card highlight-card--yellow">
-        <div className="section-head">
-          <div>
-            <div className="section-label">Próximo atendimento</div>
-            <div className="section-title">
-              {nextAppointment?.clientName ?? 'Nenhum atendimento hoje'}
-            </div>
-          </div>
-          {nextAppointment ? <Tag color={statusColor(nextAppointment.status)}>{nextAppointment.status}</Tag> : null}
+        <div className="hero-today-grid">
+          <button type="button" className="hero-today-card" onClick={() => goToRoute('agenda')}>
+            <strong>{summary.todayAppointments}</strong>
+            <span>Hoje</span>
+          </button>
+          <button type="button" className="hero-today-card" onClick={() => goToRoute('agenda')}>
+            <strong>{summary.nextAppointments}</strong>
+            <span>Próximos</span>
+          </button>
+          <button type="button" className="hero-today-card" onClick={() => goToRoute('atendimentos')}>
+            <strong>{summary.pendingFollowUps}</strong>
+            <span>Pendências</span>
+          </button>
         </div>
-        {nextAppointment ? (
-          <p className="muted-text">
-            {nextAppointment.time} • {nextAppointment.serviceType}
-            {nextAppointment.notes ? ` • ${nextAppointment.notes}` : ''}
-          </p>
-        ) : (
-          <p className="muted-text">Nenhum atendimento programado para hoje.</p>
-        )}
       </Card>
 
       <Card className="soft-card">
         <div className="section-head">
           <div>
-            <div className="section-label">Atendimentos de hoje</div>
-            <div className="section-title">Sequência do dia</div>
+            <div className="section-label">Agenda do dia</div>
+            <div className="section-title">
+              {selectedDayAppointments.length === 0
+                ? 'Nenhum atendimento neste dia'
+                : `${selectedDayAppointments.length} atendimento${selectedDayAppointments.length === 1 ? '' : 's'}`}
+            </div>
           </div>
+          <Button size="small" fill="outline" shape="rounded" onClick={() => goToRoute('agenda')}>
+            Abrir agenda
+          </Button>
         </div>
         <div className="screen-stack">
-          {todayAppointments.length === 0 ? (
-            <p className="muted-text">Nenhum atendimento hoje.</p>
+          {selectedDayAppointments.length === 0 ? (
+            <Empty description="Não há agendamentos para a data selecionada." />
           ) : (
-            todayAppointments.map((appointment, index) => (
-              <AppointmentCard key={appointment.id} appointment={appointment} emphasis={index === 0} />
+            selectedDayAppointments.map((appointment, index) => (
+              <AppointmentCard
+                key={appointment.id}
+                appointment={appointment}
+                emphasis={index === 0}
+                onClick={() => setSelectedAppointmentId(appointment.id)}
+              />
             ))
           )}
         </div>
       </Card>
+
+      {selectedAppointment ? (
+        <Card className="soft-card highlight-card highlight-card--yellow">
+          <div className="section-head">
+            <div>
+              <div className="section-label">Detalhe</div>
+              <div className="section-title">{selectedAppointment.clientName}</div>
+            </div>
+            <Tag color={statusColor(selectedAppointment.status)}>{selectedAppointment.status}</Tag>
+          </div>
+          <p className="muted-text">
+            {selectedAppointment.time} • {selectedAppointment.serviceType}
+            {selectedAppointment.notes ? ` • ${selectedAppointment.notes}` : ''}
+          </p>
+          <div className="hero-action-row">
+            <Button block color="primary" fill="solid" shape="rounded" onClick={() => goToRoute('agenda')}>
+              <CalendarOutline />
+              Abrir agenda
+            </Button>
+            <Button block color="primary" fill="outline" shape="rounded" onClick={() => goToRoute('atendimentos')}>
+              <MessageOutline />
+              Registrar atendimento
+            </Button>
+          </div>
+        </Card>
+      ) : null}
 
       <Card className="soft-card">
         <div className="section-head">
@@ -190,32 +258,20 @@ export function HomeScreen() {
             <div className="section-label">Clientes recentes</div>
             <div className="section-title">Acesso rápido</div>
           </div>
+          <Button size="small" fill="outline" shape="rounded" onClick={() => goToRoute('clientes')}>
+            Ver todos
+          </Button>
         </div>
         <div className="screen-stack">
           {recentClients.length === 0 ? (
             <p className="muted-text">Nenhum cliente cadastrado ainda.</p>
-          ) : recentClients.map((client) => (
-            <ClientCard key={client.id} client={client} />
-          ))}
+          ) : (
+            recentClients.map((client) => (
+              <ClientCard key={client.id} client={client} onClick={() => goToRoute('clientes')} />
+            ))
+          )}
         </div>
       </Card>
-
-      <div className="quick-actions-grid">
-        <QuickActionButton
-          label="Novo cliente"
-          hint="Cadastro rápido"
-          onClick={() => showSoonFeedback('Novo cliente')}
-          tone="primary"
-          icon={<UserAddOutline />}
-        />
-        <QuickActionButton
-          label="Novo agendamento"
-          hint="Hora e serviço"
-          onClick={() => showSoonFeedback('Novo agendamento')}
-          tone="dark"
-          icon={<CalendarOutline />}
-        />
-      </div>
     </div>
   );
 }

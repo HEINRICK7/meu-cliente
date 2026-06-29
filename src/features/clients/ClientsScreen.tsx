@@ -26,6 +26,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
 import { formatAttendanceDate } from '../../services/attendancesService';
 import { formatAppointmentDate } from '../../services/appointmentsService';
+import { parseCalendarDate } from '../../utils/date';
 import type { Appointment, Attendance, Client, ClientStatus, ClientUpsertInput } from '../../types/domain';
 
 const statusTabs: Array<{ key: 'todos' | ClientStatus; title: string }> = [
@@ -82,27 +83,8 @@ function normalizeLabel(value: string) {
   return value.trim().toLowerCase();
 }
 
-function parseStoredDate(value: string) {
-  const trimmed = value.trim();
-
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const brazilianMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-  if (brazilianMatch) {
-    const [, day, month, year] = brazilianMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function parseDateTimeKey(dateValue: string, timeValue = '00:00') {
-  const parsed = parseStoredDate(dateValue);
+  const parsed = parseCalendarDate(dateValue);
 
   if (!parsed) {
     return Number.NEGATIVE_INFINITY;

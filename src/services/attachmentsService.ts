@@ -10,16 +10,12 @@ import {
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, firebaseReady, storage } from '../firebase/client';
 import type { Attachment, AttachmentUpsertInput } from '../types/domain';
+import { formatCalendarDate, parseCalendarDate } from '../utils/date';
 
 const ATTACHMENTS_COLLECTION = 'attachments';
 
 function nowIso() {
   return new Date().toISOString();
-}
-
-function parseStoredDate(value: string) {
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function normalizeAttachment(data: Record<string, unknown>, id: string): Attachment {
@@ -54,8 +50,8 @@ function buildStoragePath(businessId: string, attachmentId: string, fileName: st
 }
 
 function sortAttachments(left: Attachment, right: Attachment) {
-  const leftDate = left.createdAt ? parseStoredDate(left.createdAt) : null;
-  const rightDate = right.createdAt ? parseStoredDate(right.createdAt) : null;
+  const leftDate = left.createdAt ? parseCalendarDate(left.createdAt) : null;
+  const rightDate = right.createdAt ? parseCalendarDate(right.createdAt) : null;
 
   const leftTime = leftDate ? leftDate.getTime() : Number.NEGATIVE_INFINITY;
   const rightTime = rightDate ? rightDate.getTime() : Number.NEGATIVE_INFINITY;
@@ -64,13 +60,7 @@ function sortAttachments(left: Attachment, right: Attachment) {
 }
 
 export function formatAttachmentDate(value: string) {
-  const parsed = parseStoredDate(value);
-
-  if (!parsed) {
-    return value || 'Data sem registro';
-  }
-
-  return parsed.toLocaleDateString('pt-BR');
+  return formatCalendarDate(value);
 }
 
 export function listenAttachments(
