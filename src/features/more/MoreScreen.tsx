@@ -5,7 +5,7 @@ import {
   UserOutline,
 } from 'antd-mobile-icons';
 import { Button, Card, List, Toast } from 'antd-mobile';
-import { mockBusiness } from '../../services/mockData';
+import type { AuthSession } from '../../types/domain';
 
 const actions = [
   { title: 'Configurações', icon: <SetOutline /> },
@@ -17,19 +17,29 @@ const actions = [
 
 type MoreScreenProps = {
   onLogout?: () => void;
+  session?: AuthSession | null;
 };
 
-export function MoreScreen({ onLogout }: MoreScreenProps) {
+export function MoreScreen({ onLogout, session }: MoreScreenProps) {
+  const businessName = session?.businessName || 'Meu Cliente';
+  const businessLabel = session?.role === 'owner' ? 'Conta principal' : 'Conta conectada';
+  const userLabel = session?.name || 'Usuário';
+  const userEmail = session?.email || '';
+
   return (
     <div className="screen-stack">
       <Card className="soft-card highlight-card">
         <div className="section-head">
           <div>
             <div className="section-label">Conta</div>
-            <div className="section-title">{mockBusiness.name}</div>
+            <div className="section-title">{businessName}</div>
           </div>
         </div>
-        <p className="muted-text">{mockBusiness.segment}</p>
+        <p className="muted-text">{businessLabel}</p>
+        <p className="muted-text" style={{ marginTop: 8 }}>
+          {userLabel}
+          {userEmail ? ` · ${userEmail}` : ''}
+        </p>
         <Button
           block
           color="primary"

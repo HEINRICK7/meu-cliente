@@ -86,7 +86,7 @@ export default function App() {
 
   return (
     <AppShell activeRoute={activeRoute} onNavigate={(nextRoute) => navigate(nextRoute)}>
-      {screens[activeRoute](handleLogout)}
+      {activeRoute === 'mais' ? <MoreScreen onLogout={handleLogout} session={session} /> : screens[activeRoute](handleLogout)}
     </AppShell>
   );
 }
