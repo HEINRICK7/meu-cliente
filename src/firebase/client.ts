@@ -11,17 +11,41 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+function hasValidFirebaseConfig(config: typeof firebaseConfig) {
+  return (
+    typeof config.apiKey === 'string' &&
+    config.apiKey.startsWith('AIza') &&
+    typeof config.authDomain === 'string' &&
+    config.authDomain.length > 0 &&
+    typeof config.projectId === 'string' &&
+    config.projectId.length > 0 &&
+    typeof config.appId === 'string' &&
+    config.appId.length > 0
+  );
+}
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+const app = hasValidFirebaseConfig(firebaseConfig)
+  ? getApps().length > 0
+    ? getApp()
+    : initializeApp(firebaseConfig)
+  : null;
 
-export const googleAuthProvider = new GoogleAuthProvider();
-googleAuthProvider.setCustomParameters({ prompt: 'select_account' });
+export const firebaseReady = app !== null;
+export const auth = app ? getAuth(app) : null;
+export const db = app ? getFirestore(app) : null;
+
+export const googleAuthProvider = app ? new GoogleAuthProvider() : null;
+if (googleAuthProvider) {
+  googleAuthProvider.setCustomParameters({ prompt: 'select_account' });
+}
 
 let persistenceReady = false;
 
 export async function ensureAuthPersistence() {
+  if (!auth) {
+    return;
+  }
+
   if (persistenceReady) {
     return;
   }

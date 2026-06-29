@@ -1,6 +1,6 @@
 import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut, type User as FirebaseUser } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db, ensureAuthPersistence, googleAuthProvider } from '../firebase/client';
+import { auth, db, ensureAuthPersistence, firebaseReady, googleAuthProvider } from '../firebase/client';
 import type { AuthSession, UserRole } from '../types/domain';
 
 const USERS_COLLECTION = 'users';
@@ -15,6 +15,10 @@ function displayNameFor(user: FirebaseUser) {
 }
 
 async function ensureUserDocuments(user: FirebaseUser): Promise<AuthSession> {
+  if (!firebaseReady || !auth || !db) {
+    throw new Error('Firebase não está configurado neste ambiente.');
+  }
+
   const timestamp = nowIso();
   const userRef = doc(db, USERS_COLLECTION, user.uid);
   const userSnapshot = await getDoc(userRef);
@@ -76,6 +80,11 @@ async function ensureUserDocuments(user: FirebaseUser): Promise<AuthSession> {
 }
 
 export function listenToAuthSession(onChange: (session: AuthSession | null) => void) {
+  if (!firebaseReady || !auth || !db) {
+    onChange(null);
+    return () => undefined;
+  }
+
   return onAuthStateChanged(auth, async (user) => {
     if (!user) {
       onChange(null);
@@ -88,12 +97,20 @@ export function listenToAuthSession(onChange: (session: AuthSession | null) => v
 }
 
 export async function signInWithGoogle() {
+  if (!firebaseReady || !auth || !googleAuthProvider) {
+    throw new Error('Firebase não está configurado neste ambiente.');
+  }
+
   await ensureAuthPersistence();
   const credential = await signInWithPopup(auth, googleAuthProvider);
   return ensureUserDocuments(credential.user);
 }
 
 export async function signOut() {
+  if (!firebaseReady || !auth) {
+    return;
+  }
+
   await firebaseSignOut(auth);
 }
 
@@ -114,6 +131,14 @@ export function getAuthErrorMessage(error: unknown) {
 
   if (code.includes('account-exists-with-different-credential')) {
     return 'Esse e-mail já existe com outro método de login.';
+  }
+
+  if (code.includes('invalid-api-key')) {
+    return 'A configuração do Firebase está inválida neste ambiente.';
+  }
+
+  if (String(error).includes('Firebase não está configurado')) {
+    return 'O Firebase ainda não está configurado neste ambiente.';
   }
 
   return 'Não foi possível autenticar agora.';

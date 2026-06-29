@@ -5,6 +5,10 @@ import 'antd-mobile/es/global';
 import './styles/global.css';
 
 async function registerServiceWorker() {
+  if (import.meta.env.DEV) {
+    return;
+  }
+
   if (!('serviceWorker' in navigator)) {
     return;
   }
