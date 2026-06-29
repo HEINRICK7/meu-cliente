@@ -126,8 +126,8 @@ export function AppShell({ activeRoute, onNavigate, children, session }: AppShel
           <button
             type="button"
             className="bottom-nav__create"
-            onClick={() => onNavigate('agenda')}
-            aria-label="Criar novo agendamento"
+            onClick={() => onNavigate('atendimentos')}
+            aria-label="Abrir atendimentos"
           >
             <AddCircleOutline />
           </button>

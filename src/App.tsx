@@ -21,14 +21,6 @@ import {
 import type { AuthFormValues } from './features/auth/AuthScreen';
 import type { AppRoute, AuthRoute, Route } from './types/domain';
 
-const screens: Record<AppRoute, (onLogout: () => void) => JSX.Element> = {
-  inicio: () => <HomeScreen />,
-  clientes: () => <ClientsScreen />,
-  agenda: () => <ScheduleScreen />,
-  atendimentos: () => <AttendancesScreen />,
-  mais: (onLogout) => <MoreScreen onLogout={onLogout} />,
-};
-
 function isAppRoute(route: Route): route is AppRoute {
   return route === 'inicio' || route === 'clientes' || route === 'agenda' || route === 'atendimentos' || route === 'mais';
 }
@@ -41,6 +33,14 @@ export default function App() {
   const { route, navigate } = useHashRoute();
   const { session, loading } = useAuth();
   const [authBusy, setAuthBusy] = useState(false);
+  const activeRoute = isAppRoute(route) ? route : 'inicio';
+  const [mountedRoutes, setMountedRoutes] = useState<Record<AppRoute, boolean>>(() => ({
+    inicio: activeRoute === 'inicio',
+    clientes: activeRoute === 'clientes',
+    agenda: activeRoute === 'agenda',
+    atendimentos: activeRoute === 'atendimentos',
+    mais: activeRoute === 'mais',
+  }));
 
   useEffect(() => {
     if (loading) {
@@ -56,6 +56,23 @@ export default function App() {
       navigate('entrar');
     }
   }, [loading, navigate, route, session]);
+
+  useEffect(() => {
+    if (!isAppRoute(route)) {
+      return;
+    }
+
+    setMountedRoutes((current) => {
+      if (current[route]) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [route]: true,
+      };
+    });
+  }, [route]);
 
   const handleLogout = async () => {
     try {
@@ -134,11 +151,28 @@ export default function App() {
     );
   }
 
-  const activeRoute = isAppRoute(route) ? route : 'inicio';
-
   return (
     <AppShell activeRoute={activeRoute} onNavigate={(nextRoute) => navigate(nextRoute)} session={session}>
-      {activeRoute === 'mais' ? <MoreScreen onLogout={handleLogout} session={session} /> : screens[activeRoute](handleLogout)}
+      {([
+        ['inicio', <HomeScreen key="inicio" />],
+        ['clientes', <ClientsScreen key="clientes" />],
+        ['agenda', <ScheduleScreen key="agenda" />],
+        ['atendimentos', <AttendancesScreen key="atendimentos" />],
+        ['mais', <MoreScreen key="mais" onLogout={handleLogout} session={session} />],
+      ] as const).map(([appRoute, element]) => {
+        const isVisible = activeRoute === appRoute;
+        const shouldRender = mountedRoutes[appRoute] || isVisible;
+
+        if (!shouldRender) {
+          return null;
+        }
+
+        return (
+          <section key={appRoute} className="app-route-panel" hidden={!isVisible} aria-hidden={!isVisible}>
+            {element}
+          </section>
+        );
+      })}
     </AppShell>
   );
 }
