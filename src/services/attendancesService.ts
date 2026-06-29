@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db, firebaseReady } from '../firebase/client';
 import type { Attendance, AttendanceUpsertInput } from '../types/domain';
+import { formatCalendarDate, parseCalendarDate, toDateKey } from '../utils/date';
 
 const ATTENDANCES_COLLECTION = 'attendances';
 
@@ -17,39 +18,8 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function pad(value: number) {
-  return `${value}`.padStart(2, '0');
-}
-
-function parseStoredDate(value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const brazilianMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-  if (brazilianMatch) {
-    const [, day, month, year] = brazilianMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function localDateKey(value: Date) {
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
-}
-
 function attendanceSortKey(attendance: Attendance) {
-  const parsed = parseStoredDate(attendance.date);
+  const parsed = parseCalendarDate(attendance.date);
 
   if (!parsed) {
     return Number.NEGATIVE_INFINITY;
@@ -76,23 +46,17 @@ function normalizeAttendance(data: Record<string, unknown>, id: string): Attenda
 }
 
 export function formatAttendanceDate(value: string) {
-  const parsed = parseStoredDate(value);
-
-  if (!parsed) {
-    return value || 'Data sem registro';
-  }
-
-  return parsed.toLocaleDateString('pt-BR');
+  return formatCalendarDate(value);
 }
 
 export function isAttendanceOnDay(value: string, target = new Date()) {
-  const parsed = parseStoredDate(value);
+  const parsed = parseCalendarDate(value);
 
   if (!parsed) {
     return false;
   }
 
-  return localDateKey(parsed) === localDateKey(target);
+  return toDateKey(parsed) === toDateKey(target);
 }
 
 export function listenAttendances(

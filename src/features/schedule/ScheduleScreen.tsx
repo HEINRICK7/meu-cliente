@@ -12,6 +12,7 @@ import {
   isAppointmentInRange,
   isAppointmentOnDay,
 } from '../../services/appointmentsService';
+import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Appointment, AppointmentStatus, AppointmentUpsertInput } from '../../types/domain';
 
 type ScheduleView = 'hoje' | 'proximos' | 'semana';
@@ -37,33 +38,6 @@ type AppointmentFormValues = {
   notes?: string;
 };
 
-function pad(value: number) {
-  return `${value}`.padStart(2, '0');
-}
-
-function toDateKey(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function parseStoredDate(value: string) {
-  const trimmed = value.trim();
-
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const brazilianMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-  if (brazilianMatch) {
-    const [, day, month, year] = brazilianMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
 function formatDateLabel(date: Date | null) {
   if (!date) {
     return 'Selecionar data';
@@ -73,8 +47,8 @@ function formatDateLabel(date: Date | null) {
 }
 
 function sortBySchedule(left: Appointment, right: Appointment) {
-  const leftDate = parseStoredDate(left.date);
-  const rightDate = parseStoredDate(right.date);
+  const leftDate = parseCalendarDate(left.date);
+  const rightDate = parseCalendarDate(right.date);
   const [leftHour = '0', leftMinute = '0'] = left.time.split(':');
   const [rightHour = '0', rightMinute = '0'] = right.time.split(':');
   const leftMinutes = Number(leftHour) * 60 + Number(leftMinute);
@@ -188,7 +162,7 @@ export function ScheduleScreen() {
       serviceType: appointment.serviceType,
       notes: appointment.notes ?? '',
     });
-    setSelectedDate(parseStoredDate(appointment.date));
+    setSelectedDate(parseCalendarDate(appointment.date));
     setSelectedStatus(appointment.status);
     setSelectedClientId(appointment.clientId ?? null);
     setEditorVisible(true);

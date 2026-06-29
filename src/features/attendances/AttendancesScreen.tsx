@@ -27,6 +27,7 @@ import { useAttendances } from '../../hooks/useAttendances';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
 import { formatAttendanceDate, isAttendanceOnDay } from '../../services/attendancesService';
+import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Attendance, AttendanceUpsertInput } from '../../types/domain';
 
 type AttendanceFormValues = {
@@ -36,33 +37,6 @@ type AttendanceFormValues = {
   nextAction?: string;
   appointmentId?: string;
 };
-
-function pad(value: number) {
-  return `${value}`.padStart(2, '0');
-}
-
-function toDateKey(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function parseStoredDate(value: string) {
-  const trimmed = value.trim();
-
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const brazilianMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-  if (brazilianMatch) {
-    const [, day, month, year] = brazilianMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
 
 function formatDateLabel(date: Date | null) {
   if (!date) {
@@ -129,7 +103,7 @@ export function AttendancesScreen() {
   function openEditAttendance(attendance: Attendance) {
     setEditingAttendance(attendance);
     setSelectedClientId(attendance.clientId);
-    setSelectedDate(parseStoredDate(attendance.date));
+    setSelectedDate(parseCalendarDate(attendance.date));
     form.setFieldsValue({
       clientName: attendance.clientName,
       title: attendance.title,

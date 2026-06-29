@@ -1,11 +1,11 @@
 import {
-  AddOutline,
-  BellOutline,
   CalendarOutline,
+  BellOutline,
   MessageOutline,
   MoreOutline,
   UnorderedListOutline,
   UserOutline,
+  AddCircleOutline,
 } from 'antd-mobile-icons';
 import type { ReactNode } from 'react';
 import type { AppRoute, AuthSession } from '../types/domain';
@@ -19,9 +19,8 @@ type AppShellProps = {
 
 const navItems: Array<{ route: AppRoute; label: string; icon: ReactNode }> = [
   { route: 'inicio', label: 'Início', icon: <CalendarOutline /> },
-  { route: 'clientes', label: 'Clientes', icon: <UserOutline /> },
   { route: 'agenda', label: 'Agenda', icon: <UnorderedListOutline /> },
-  { route: 'atendimentos', label: 'Atendimentos', icon: <MessageOutline /> },
+  { route: 'clientes', label: 'Clientes', icon: <UserOutline /> },
   { route: 'mais', label: 'Mais', icon: <MoreOutline /> },
 ];
 
@@ -60,7 +59,6 @@ function shortName(name: string) {
 export function AppShell({ activeRoute, onNavigate, children, session }: AppShellProps) {
   const meta = pageMeta[activeRoute];
   const userName = session?.name || 'Usuário';
-  const userEmail = session?.email || '';
   const userPhoto = session?.photoURL;
 
   return (
@@ -77,13 +75,13 @@ export function AppShell({ activeRoute, onNavigate, children, session }: AppShel
                   aria-hidden="true"
                 />
               </div>
-              <div>
-                <div className="app-header__eyebrow">Meu Cliente</div>
-                <div className="app-header__subtitle app-header__subtitle--brand">Organização simples do dia</div>
+              <div className="app-header__brand-copy" aria-label="Meu Cliente">
+                <span>MEU</span>
+                <span>CLIENTE</span>
               </div>
             </div>
             <div className="app-header__actions">
-              <div className="app-user-chip" aria-label={`Usuário logado: ${userName}`}>
+              <button type="button" className="app-header__avatar-button" aria-label={`Usuário logado: ${userName}`}>
                 <div className="app-user-chip__avatar">
                   {userPhoto ? (
                     <img src={userPhoto} alt="" aria-hidden="true" className="app-user-chip__image" />
@@ -91,15 +89,8 @@ export function AppShell({ activeRoute, onNavigate, children, session }: AppShel
                     <span>{shortName(userName)}</span>
                   )}
                 </div>
-                <div className="app-user-chip__copy">
-                  <div className="app-user-chip__name">{userName}</div>
-                  {userEmail ? <div className="app-user-chip__email">{userEmail}</div> : null}
-                </div>
-              </div>
-              <button type="button" className="icon-chip" aria-label="Nova ação">
-                <AddOutline />
               </button>
-              <button type="button" className="icon-chip" aria-label="Notificações">
+              <button type="button" className="icon-chip icon-chip--light" aria-label="Notificações">
                 <BellOutline />
               </button>
             </div>
@@ -114,7 +105,33 @@ export function AppShell({ activeRoute, onNavigate, children, session }: AppShel
         <main className="app-content">{children}</main>
 
         <nav className="bottom-nav" aria-label="Navegação principal">
-          {navItems.map((item) => {
+          {navItems.slice(0, 2).map((item) => {
+            const isActive = item.route === activeRoute;
+
+            return (
+              <button
+                key={item.route}
+                type="button"
+                className={isActive ? 'bottom-nav__item bottom-nav__item--active' : 'bottom-nav__item'}
+                onClick={() => onNavigate(item.route)}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                <span className="bottom-nav__icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            className="bottom-nav__create"
+            onClick={() => onNavigate('agenda')}
+            aria-label="Criar novo agendamento"
+          >
+            <AddCircleOutline />
+          </button>
+          {navItems.slice(2).map((item) => {
             const isActive = item.route === activeRoute;
 
             return (

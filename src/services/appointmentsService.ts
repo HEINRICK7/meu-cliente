@@ -11,45 +11,16 @@ import {
 import { db, firebaseReady } from '../firebase/client';
 import type { Appointment, AppointmentStatus, AppointmentUpsertInput } from '../types/domain';
 
+import { formatCalendarDate, parseCalendarDate, toDateKey } from '../utils/date';
+
 const APPOINTMENTS_COLLECTION = 'appointments';
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-function pad(value: number) {
-  return `${value}`.padStart(2, '0');
-}
-
-function parseStoredDate(value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return null;
-  }
-
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
-  if (isoMatch) {
-    const [, year, month, day] = isoMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const brazilianMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
-  if (brazilianMatch) {
-    const [, day, month, year] = brazilianMatch;
-    return new Date(Number(year), Number(month) - 1, Number(day));
-  }
-
-  const parsed = new Date(trimmed);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function toLocalDateKey(value: Date) {
-  return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
-}
-
 function parseDateTimeKey(dateValue: string, timeValue: string) {
-  const date = parseStoredDate(dateValue);
+  const date = parseCalendarDate(dateValue);
 
   if (!date) {
     return Number.POSITIVE_INFINITY;
@@ -85,34 +56,28 @@ function normalizeAppointment(data: Record<string, unknown>, id: string): Appoin
 }
 
 export function formatAppointmentDate(value: string) {
-  const parsed = parseStoredDate(value);
-
-  if (!parsed) {
-    return value || 'Data sem registro';
-  }
-
-  return parsed.toLocaleDateString('pt-BR');
+  return formatCalendarDate(value);
 }
 
 export function isAppointmentOnDay(value: string, target = new Date()) {
-  const parsed = parseStoredDate(value);
+  const parsed = parseCalendarDate(value);
 
   if (!parsed) {
     return false;
   }
 
-  return toLocalDateKey(parsed) === toLocalDateKey(target);
+  return toDateKey(parsed) === toDateKey(target);
 }
 
 export function isAppointmentInRange(value: string, start: Date, end: Date) {
-  const parsed = parseStoredDate(value);
+  const parsed = parseCalendarDate(value);
 
   if (!parsed) {
     return false;
   }
 
-  const dateKey = toLocalDateKey(parsed);
-  return dateKey >= toLocalDateKey(start) && dateKey <= toLocalDateKey(end);
+  const dateKey = toDateKey(parsed);
+  return dateKey >= toDateKey(start) && dateKey <= toDateKey(end);
 }
 
 export function compareAppointmentsBySchedule(left: Appointment, right: Appointment) {
