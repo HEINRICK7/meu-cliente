@@ -2,6 +2,7 @@ import { doc, onSnapshot, setDoc, type Unsubscribe } from 'firebase/firestore';
 import { db, firebaseReady } from '../firebase/client';
 import { withTimeout } from './asyncTimeout';
 import { isFirestoreUnavailable, markFirestoreUnavailable, runFirestoreOperation } from './firestoreHealth';
+import { normalizeFirestoreId } from './firestoreIds';
 import type { Business, User } from '../types/domain';
 
 function normalizeUser(data: Record<string, unknown>, id: string): User {
@@ -41,7 +42,7 @@ export function listenUserProfile(userId: string, onChange: (user: User | null) 
     return () => undefined;
   }
 
-  const userRef = doc(db, 'users', userId);
+  const userRef = doc(db, 'users', normalizeFirestoreId(userId, userId));
 
   return onSnapshot(
     userRef,
@@ -71,7 +72,7 @@ export function listenBusinessProfile(
     return () => undefined;
   }
 
-  const businessRef = doc(db, 'businesses', businessId);
+  const businessRef = doc(db, 'businesses', normalizeFirestoreId(businessId, businessId));
 
   return onSnapshot(
     businessRef,
@@ -92,7 +93,7 @@ export async function updateUserProfileRecord(userId: string, data: { name: stri
   }
 
   const timestamp = new Date().toISOString();
-  const userRef = doc(db, 'users', userId);
+  const userRef = doc(db, 'users', normalizeFirestoreId(userId, userId));
 
   await runFirestoreOperation(
     withTimeout(
@@ -119,7 +120,7 @@ export async function updateBusinessProfileRecord(
   }
 
   const timestamp = new Date().toISOString();
-  const businessRef = doc(db, 'businesses', businessId);
+  const businessRef = doc(db, 'businesses', normalizeFirestoreId(businessId, businessId));
 
   await runFirestoreOperation(
     withTimeout(

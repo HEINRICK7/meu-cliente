@@ -16,6 +16,7 @@ import {
   markFirestoreUnavailable,
   runFirestoreOperation,
 } from './firestoreHealth';
+import { normalizeFirestoreId } from './firestoreIds';
 import type { AuthSession, UserRole } from '../types/domain';
 
 const USERS_COLLECTION = 'users';
@@ -40,10 +41,15 @@ function buildAuthSession(
   timestamp = nowIso(),
   provider: AuthSession['provider'] = providerForUser(user),
 ): AuthSession {
-  const businessId = (existingUser?.businessId as string | undefined) || (existingBusiness?.id as string | undefined) || user.uid;
+  const businessId = normalizeFirestoreId(
+    (existingUser?.businessId as string | undefined) ||
+      (existingBusiness?.id as string | undefined) ||
+      user.uid,
+    user.uid,
+  );
 
   return {
-    id: user.uid,
+    id: normalizeFirestoreId(user.uid, user.uid),
     name: (existingUser?.name as string | undefined) || displayNameFor(user),
     email: (existingUser?.email as string | undefined) || user.email?.trim() || '',
     provider,
@@ -66,10 +72,11 @@ async function syncUserDocuments(user: FirebaseUser, provider: AuthSession['prov
   }
 
   const timestamp = nowIso();
-  const userRef = doc(firestore, USERS_COLLECTION, user.uid);
+  const userId = normalizeFirestoreId(user.uid, user.uid);
+  const userRef = doc(firestore, USERS_COLLECTION, userId);
   const userSnapshot = await runFirestoreOperation(getDoc(userRef));
   const existingUser = userSnapshot.exists() ? userSnapshot.data() : null;
-  const businessId = (existingUser?.businessId as string | undefined) || user.uid;
+  const businessId = normalizeFirestoreId((existingUser?.businessId as string | undefined) || user.uid, userId);
   const businessRef = doc(firestore, BUSINESSES_COLLECTION, businessId);
   const businessSnapshot = await runFirestoreOperation(getDoc(businessRef));
   const businessName =
@@ -81,7 +88,7 @@ async function syncUserDocuments(user: FirebaseUser, provider: AuthSession['prov
       setDoc(businessRef, {
         id: businessId,
         name: businessName,
-        ownerId: user.uid,
+        ownerId: userId,
         segment: 'Serviços',
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -92,7 +99,7 @@ async function syncUserDocuments(user: FirebaseUser, provider: AuthSession['prov
   if (!userSnapshot.exists()) {
     await runFirestoreOperation(
       setDoc(userRef, {
-        id: user.uid,
+        id: userId,
         name: displayNameFor(user),
         email: user.email?.trim() || '',
         businessId,
@@ -107,7 +114,7 @@ async function syncUserDocuments(user: FirebaseUser, provider: AuthSession['prov
         userRef,
         {
           ...existingUser,
-          id: user.uid,
+          id: userId,
           name: (existingUser?.name as string | undefined) || displayNameFor(user),
           email: (existingUser?.email as string | undefined) || user.email?.trim() || '',
           businessId,
@@ -177,10 +184,11 @@ export function listenToAuthSession(onChange: (session: AuthSession | null) => v
           return;
         }
 
-        const userRef = doc(firestore, USERS_COLLECTION, user.uid);
+        const userId = normalizeFirestoreId(user.uid, user.uid);
+        const userRef = doc(firestore, USERS_COLLECTION, userId);
         const userSnapshot = await runFirestoreOperation(getDoc(userRef));
         const userData = userSnapshot.exists() ? (userSnapshot.data() as Record<string, unknown>) : null;
-        const businessId = (userData?.businessId as string | undefined) || user.uid;
+        const businessId = normalizeFirestoreId((userData?.businessId as string | undefined) || user.uid, userId);
         const businessRef = doc(firestore, BUSINESSES_COLLECTION, businessId);
         const businessSnapshot = await runFirestoreOperation(getDoc(businessRef));
         let latestUserData = userData;

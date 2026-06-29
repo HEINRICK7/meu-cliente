@@ -10,7 +10,7 @@ import {
 } from 'firebase/messaging';
 import { db, firebaseApp, firebaseReady, getFirebasePublicConfig } from '../firebase/client';
 import { withTimeout } from './asyncTimeout';
-import { isFirestoreUnavailable, isFirestoreUnavailableError, runFirestoreOperation } from './firestoreHealth';
+import { isFirestoreUnavailableError, runFirestoreOperation } from './firestoreHealth';
 
 type PushRegistrationResult = {
   token: string;
@@ -39,20 +39,28 @@ async function getServiceWorkerRegistration() {
     throw new Error('Este navegador não suporta service workers.');
   }
 
-  return withTimeout(
-    navigator.serviceWorker.ready,
-    10000,
-    'O service worker de notificações demorou demais para ficar pronto.',
-  );
+  const registration = await navigator.serviceWorker.getRegistration('/');
+
+  if (!registration) {
+    const readyRegistration = await withTimeout(
+      navigator.serviceWorker.ready,
+      5000,
+      'Nenhum service worker ativo foi encontrado para este app.',
+    );
+
+    if (!readyRegistration) {
+      throw new Error('Nenhum service worker ativo foi encontrado para este app.');
+    }
+
+    return readyRegistration;
+  }
+
+  return registration;
 }
 
 async function getMessagingInstance() {
-  if (!firebaseReady || !firebaseApp || !db) {
+  if (!firebaseReady || !firebaseApp) {
     throw new Error('Firebase não está configurado neste ambiente.');
-  }
-
-  if (isFirestoreUnavailable()) {
-    throw new Error('O Firestore ainda não foi criado neste projeto Firebase. Crie o banco padrão para continuar salvando dados.');
   }
 
   const supported = await isSupported();
@@ -72,13 +80,14 @@ export async function getPushPermissionStatus(): Promise<PushPermissionStatus> {
 }
 
 export async function enablePushNotifications(userId: string): Promise<PushRegistrationResult> {
+  const messaging = await getMessagingInstance();
+  const registration = await getServiceWorkerRegistration();
   const permission = await requestPushPermission();
+
   if (permission !== 'granted') {
     throw new Error('A permissão para notificações precisa estar liberada.');
   }
 
-  const messaging = await getMessagingInstance();
-  const registration = await getServiceWorkerRegistration();
   const token = await withTimeout(
     getToken(messaging, {
       vapidKey: getVapidKey(),
@@ -92,9 +101,13 @@ export async function enablePushNotifications(userId: string): Promise<PushRegis
     throw new Error('Não foi possível gerar o token de notificações.');
   }
 
+  if (!db) {
+    throw new Error('Firebase não está configurado neste ambiente.');
+  }
+
   await runFirestoreOperation(
     setDoc(
-      doc(db as NonNullable<typeof db>, USERS_COLLECTION, userId),
+      doc(db, USERS_COLLECTION, userId),
       {
         pushToken: token,
         pushNotificationsEnabled: true,
@@ -182,6 +195,18 @@ export function getPushNotificationErrorMessage(error: unknown) {
 
   if (code.includes('messaging/permission-default')) {
     return 'Permita as notificações para concluir a ativação.';
+  }
+
+  if (String(error).includes('Nenhum service worker ativo foi encontrado')) {
+    return 'Abra a versão publicada do app para ativar notificações. No ambiente local não há service worker ativo.';
+  }
+
+  if (String(error).includes('navegador não suporta service workers')) {
+    return 'Seu navegador não suporta notificações push.';
+  }
+
+  if (String(error).includes('Firebase não está configurado')) {
+    return 'Firebase indisponível neste ambiente.';
   }
 
   if (String(error).includes('demorou demais')) {
