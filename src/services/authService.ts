@@ -178,9 +178,5 @@ export function getAuthErrorMessage(error: unknown) {
     return 'A configuração do Firebase está inválida neste ambiente.';
   }
 
-  if (String(error).includes('Firebase não está configurado')) {
-    return 'O Firebase ainda não está configurado neste ambiente.';
-  }
-
   return 'Não foi possível entrar com Google. Tente novamente.';
 }
