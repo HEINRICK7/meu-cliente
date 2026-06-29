@@ -332,6 +332,10 @@ button {
   padding: 16px 16px calc(128px + env(safe-area-inset-bottom));
 }
 
+.app-route-panel[hidden] {
+  display: none !important;
+}
+
 .screen-stack {
   display: grid;
   gap: 14px;
