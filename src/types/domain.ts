@@ -16,6 +16,37 @@ export interface ClientUpsertInput {
   status: ClientStatus;
 }
 
+export interface AppointmentUpsertInput {
+  clientId?: string;
+  clientName: string;
+  date: string;
+  time: string;
+  serviceType: string;
+  status: AppointmentStatus;
+  notes?: string;
+}
+
+export interface AttendanceUpsertInput {
+  clientId: string;
+  clientName: string;
+  appointmentId?: string;
+  date: string;
+  title: string;
+  description: string;
+  nextAction?: string;
+  returnDate?: string;
+}
+
+export interface AttachmentUpsertInput {
+  clientId?: string;
+  attendanceId?: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  storagePath: string;
+  fileSize?: number;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -53,7 +84,7 @@ export interface Client {
 export interface Appointment {
   id: string;
   businessId?: string;
-  clientId: string;
+  clientId?: string;
   clientName: string;
   date: string;
   time: string;
@@ -82,12 +113,14 @@ export interface Attendance {
 export interface Attachment {
   id: string;
   businessId?: string;
+  ownerId?: string;
   clientId?: string;
   attendanceId?: string;
   fileName: string;
   fileUrl: string;
   fileType: string;
   storagePath: string;
+  fileSize?: number;
   createdAt?: string;
   updatedAt?: string;
 }

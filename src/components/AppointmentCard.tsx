@@ -1,5 +1,6 @@
 import { CalendarOutline, ClockCircleOutline } from 'antd-mobile-icons';
 import { Card } from 'antd-mobile';
+import { formatAppointmentDate } from '../services/appointmentsService';
 import type { Appointment } from '../types/domain';
 import { StatusTag } from './StatusTag';
 
@@ -25,7 +26,7 @@ export function AppointmentCard({ appointment, emphasis, onClick }: AppointmentC
             <div className="section-title appointment-card__title">{appointment.clientName}</div>
             <div className="appointment-card__subtitle">
               <CalendarOutline fontSize={14} />
-              <span>{appointment.date}</span>
+              <span>{formatAppointmentDate(appointment.date)}</span>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { MessageOutline } from 'antd-mobile-icons';
 import { Card } from 'antd-mobile';
+import { formatAttendanceDate } from '../services/attendancesService';
 import type { Attendance } from '../types/domain';
 
 type AttendanceCardProps = {
@@ -16,7 +17,7 @@ export function AttendanceCard({ attendance, onClick }: AttendanceCardProps) {
           <div className="section-title attendance-card__title">{attendance.clientName}</div>
           <div className="attendance-card__subtitle">
             <MessageOutline fontSize={14} />
-            <span>{attendance.date}</span>
+            <span>{formatAttendanceDate(attendance.date)}</span>
           </div>
         </div>
       </div>
