@@ -14,13 +14,13 @@ const firebaseConfig = {
 function hasValidFirebaseConfig(config: typeof firebaseConfig) {
   return (
     typeof config.apiKey === 'string' &&
-    config.apiKey.startsWith('AIza') &&
+    config.apiKey.trim().length > 0 &&
     typeof config.authDomain === 'string' &&
-    config.authDomain.length > 0 &&
+    config.authDomain.trim().length > 0 &&
     typeof config.projectId === 'string' &&
-    config.projectId.length > 0 &&
+    config.projectId.trim().length > 0 &&
     typeof config.appId === 'string' &&
-    config.appId.length > 0
+    config.appId.trim().length > 0
   );
 }
 
