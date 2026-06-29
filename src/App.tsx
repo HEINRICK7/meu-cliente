@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Toast } from 'antd-mobile';
-import { AppShell } from './components/AppShell';
+import { AppShell, type ShellNotification } from './components/AppShell';
 import { LoadingState } from './components/LoadingState';
+import { useAppointments } from './hooks/useAppointments';
+import { useAttendances } from './hooks/useAttendances';
 import { useAuth } from './hooks/useAuth';
 import { useHashRoute } from './hooks/useHashRoute';
 import { LoginScreen } from './features/auth/LoginScreen';
@@ -18,8 +20,11 @@ import {
   signOut,
   signUpWithEmail,
 } from './services/authService';
+import { subscribeToForegroundPushes } from './services/pushNotificationsService';
 import type { AuthFormValues } from './features/auth/AuthScreen';
 import type { AppRoute, AuthRoute, Route } from './types/domain';
+import { compareAppointmentsBySchedule, isAppointmentOnDay } from './services/appointmentsService';
+import { toDateKey } from './utils/date';
 
 function isAppRoute(route: Route): route is AppRoute {
   return route === 'inicio' || route === 'clientes' || route === 'agenda' || route === 'atendimentos' || route === 'mais';
@@ -32,6 +37,8 @@ function authRouteFrom(route: Route): AuthRoute {
 export default function App() {
   const { route, navigate } = useHashRoute();
   const { session, loading } = useAuth();
+  const { appointments } = useAppointments(session?.businessId ?? null, session?.id ?? null);
+  const { attendances } = useAttendances(session?.businessId ?? null, session?.id ?? null);
   const [authBusy, setAuthBusy] = useState(false);
   const activeRoute = isAppRoute(route) ? route : 'inicio';
   const [mountedRoutes, setMountedRoutes] = useState<Record<AppRoute, boolean>>(() => ({
@@ -56,6 +63,31 @@ export default function App() {
       navigate('entrar');
     }
   }, [loading, navigate, route, session]);
+
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: () => void = () => undefined;
+
+    void (async () => {
+      unsubscribe = await subscribeToForegroundPushes((payload) => {
+        if (!active) {
+          return;
+        }
+
+        const title = payload.notification?.title || payload.data?.title || 'Meu Cliente';
+        const body = payload.notification?.body || payload.data?.body || 'Nova notificação recebida.';
+
+        Toast.show({
+          content: body ? `${title}: ${body}` : title,
+        });
+      });
+    })();
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isAppRoute(route)) {
@@ -127,6 +159,64 @@ export default function App() {
     }
   };
 
+  const notifications = useMemo<ShellNotification[]>(() => {
+    if (!session) {
+      return [];
+    }
+
+    const todayKey = toDateKey(new Date());
+    const sortedAppointments = [...appointments].sort(compareAppointmentsBySchedule);
+    const todayAppointments = sortedAppointments.filter((appointment) => isAppointmentOnDay(appointment.date));
+    const upcomingAppointments = sortedAppointments.filter((appointment) => appointment.date > todayKey);
+    const followUps = attendances.filter((attendance) => Boolean(attendance.nextAction || attendance.returnDate));
+
+    const items: ShellNotification[] = [];
+
+    if (todayAppointments[0]) {
+      const nextToday = todayAppointments[0];
+      items.push({
+        id: `today-${nextToday.id}`,
+        title: 'Compromisso de hoje',
+        description: `${nextToday.time} • ${nextToday.clientName} • ${nextToday.serviceType}`,
+        actionLabel: 'Abrir agenda',
+        route: 'agenda',
+      });
+    }
+
+    if (upcomingAppointments[0]) {
+      const nextUpcoming = upcomingAppointments[0];
+      items.push({
+        id: `upcoming-${nextUpcoming.id}`,
+        title: 'Próximo atendimento',
+        description: `${nextUpcoming.date} • ${nextUpcoming.time} • ${nextUpcoming.clientName}`,
+        actionLabel: 'Ver agenda',
+        route: 'agenda',
+      });
+    }
+
+    if (followUps[0]) {
+      items.push({
+        id: `follow-${followUps[0].id}`,
+        title: 'Pendência registrada',
+        description: followUps[0].nextAction || followUps[0].returnDate || 'Há uma próxima ação para revisar.',
+        actionLabel: 'Abrir atendimentos',
+        route: 'atendimentos',
+      });
+    }
+
+    if (items.length === 0) {
+      items.push({
+        id: 'empty-state',
+        title: 'Tudo em ordem',
+        description: 'Nenhum lembrete importante agora.',
+        actionLabel: 'Abrir agenda',
+        route: 'agenda',
+      });
+    }
+
+    return items;
+  }, [appointments, attendances, session]);
+
   if (loading) {
     return <LoadingState lines={2} />;
   }
@@ -152,7 +242,12 @@ export default function App() {
   }
 
   return (
-    <AppShell activeRoute={activeRoute} onNavigate={(nextRoute) => navigate(nextRoute)} session={session}>
+    <AppShell
+      activeRoute={activeRoute}
+      onNavigate={(nextRoute) => navigate(nextRoute)}
+      session={session}
+      notifications={notifications}
+    >
       {([
         ['inicio', <HomeScreen key="inicio" />],
         ['clientes', <ClientsScreen key="clientes" />],

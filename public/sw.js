@@ -1,4 +1,4 @@
-const CACHE_NAME = 'meu-cliente-v4';
+const CACHE_NAME = 'meu-cliente-v5';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -13,6 +13,76 @@ const APP_SHELL = [
   '/brand/app-logo-hero.png',
   '/brand/app-logo-alt.png',
 ];
+
+const firebaseConfig = (() => {
+  try {
+    const search = new URL(self.location.href).searchParams;
+    const rawConfig = search.get('firebaseConfig');
+
+    return rawConfig ? JSON.parse(decodeURIComponent(rawConfig)) : null;
+  } catch {
+    return null;
+  }
+})();
+
+let firebaseMessagingInitialized = false;
+
+function initializeFirebaseMessaging() {
+  if (firebaseMessagingInitialized || !firebaseConfig) {
+    return;
+  }
+
+  try {
+    importScripts('https://www.gstatic.com/firebasejs/12.15.0/firebase-app-compat.js');
+    importScripts('https://www.gstatic.com/firebasejs/12.15.0/firebase-messaging-compat.js');
+
+    if (!self.firebase.apps.length) {
+      self.firebase.initializeApp(firebaseConfig);
+    }
+
+    const messaging = self.firebase.messaging();
+
+    messaging.onBackgroundMessage((payload) => {
+      const title = payload.notification?.title || payload.data?.title || 'Meu Cliente';
+      const body = payload.notification?.body || payload.data?.body || 'Nova notificação disponível.';
+      const url = payload.data?.url || '/';
+
+      self.registration.showNotification(title, {
+        body,
+        icon: '/brand/app-icon.png',
+        badge: '/brand/app-icon.png',
+        data: { url },
+      });
+    });
+
+    self.addEventListener('notificationclick', (event) => {
+      event.notification.close();
+      const targetUrl = event.notification.data?.url || '/';
+
+      event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+          for (const client of windowClients) {
+            if ('focus' in client && client.url.includes(targetUrl)) {
+              return client.focus();
+            }
+          }
+
+          if (clients.openWindow) {
+            return clients.openWindow(targetUrl);
+          }
+
+          return undefined;
+        }),
+      );
+    });
+
+    firebaseMessagingInitialized = true;
+  } catch {
+    // Se o Firebase Messaging não estiver disponível, o cache do PWA continua funcionando.
+  }
+}
+
+initializeFirebaseMessaging();
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

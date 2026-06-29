@@ -154,6 +154,23 @@ button {
   padding-top: 1px;
 }
 
+.app-header__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--mc-primary-dark);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 6px 12px rgba(17, 17, 17, 0.12);
+}
+
 .app-header__avatar-button {
   display: inline-flex;
   align-items: center;
@@ -277,6 +294,7 @@ button {
 }
 
 .icon-chip {
+  position: relative;
   width: 34px;
   height: 34px;
   border: 0;
@@ -1490,6 +1508,60 @@ button {
   border: 1px solid var(--mc-border);
   background: #fff;
   padding-inline: 14px;
+}
+
+.notifications-sheet {
+  display: grid;
+  gap: 14px;
+  padding: 18px 16px calc(20px + env(safe-area-inset-bottom));
+  min-height: 58vh;
+  background: var(--mc-bg);
+}
+
+.notifications-list {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--mc-border);
+  background: #fff;
+  color: var(--mc-text);
+  text-align: left;
+  box-shadow: 0 10px 20px rgba(17, 17, 17, 0.05);
+}
+
+.notification-item__copy {
+  display: grid;
+  gap: 4px;
+}
+
+.notification-item__copy strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.notification-item__copy span {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--mc-text-soft);
+}
+
+.notification-item__action {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(235, 90, 60, 0.12);
+  color: var(--mc-primary-dark);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
 @media (min-width: 720px) {

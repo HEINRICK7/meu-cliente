@@ -53,6 +53,9 @@ export interface User {
   email: string;
   businessId: string;
   role: UserRole;
+  pushToken?: string;
+  pushNotificationsEnabled?: boolean;
+  pushTokenUpdatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }

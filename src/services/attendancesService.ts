@@ -9,6 +9,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { db, firebaseReady } from '../firebase/client';
+import { withTimeout } from './asyncTimeout';
+import { isFirestoreUnavailable, markFirestoreUnavailable, runFirestoreOperation } from './firestoreHealth';
 import type { Attendance, AttendanceUpsertInput } from '../types/domain';
 import { formatCalendarDate, parseCalendarDate, toDateKey } from '../utils/date';
 
@@ -69,6 +71,11 @@ export function listenAttendances(
     return () => undefined;
   }
 
+  if (isFirestoreUnavailable()) {
+    onChange([]);
+    return () => undefined;
+  }
+
   const attendancesRef = collection(db, ATTENDANCES_COLLECTION);
   const attendancesQuery = query(attendancesRef, where('businessId', '==', businessId));
 
@@ -82,6 +89,7 @@ export function listenAttendances(
       onChange(attendances);
     },
     (error) => {
+      markFirestoreUnavailable(error);
       onError?.(error);
       onChange([]);
     },
@@ -98,20 +106,26 @@ export async function createAttendanceRecord(params: {
   }
 
   const timestamp = nowIso();
-  const docRef = await addDoc(collection(db, ATTENDANCES_COLLECTION), {
-    businessId: params.businessId,
-    ownerId: params.ownerId,
-    clientId: params.input.clientId,
-    clientName: params.input.clientName,
-    appointmentId: params.input.appointmentId || '',
-    date: params.input.date,
-    title: params.input.title,
-    description: params.input.description,
-    nextAction: params.input.nextAction || '',
-    returnDate: params.input.returnDate || '',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
+  const docRef = await runFirestoreOperation(
+    withTimeout(
+      addDoc(collection(db, ATTENDANCES_COLLECTION), {
+        businessId: params.businessId,
+        ownerId: params.ownerId,
+        clientId: params.input.clientId,
+        clientName: params.input.clientName,
+        appointmentId: params.input.appointmentId || '',
+        date: params.input.date,
+        title: params.input.title,
+        description: params.input.description,
+        nextAction: params.input.nextAction || '',
+        returnDate: params.input.returnDate || '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+      12000,
+      'A criação do atendimento demorou demais. Tente novamente.',
+    ),
+  );
 
   return normalizeAttendance(
     {
@@ -143,15 +157,21 @@ export async function updateAttendanceRecord(params: {
   const timestamp = nowIso();
   const attendanceRef = doc(db, ATTENDANCES_COLLECTION, params.attendanceId);
 
-  await updateDoc(attendanceRef, {
-    clientId: params.input.clientId,
-    clientName: params.input.clientName,
-    appointmentId: params.input.appointmentId || '',
-    date: params.input.date,
-    title: params.input.title,
-    description: params.input.description,
-    nextAction: params.input.nextAction || '',
-    returnDate: params.input.returnDate || '',
-    updatedAt: timestamp,
-  });
+  await runFirestoreOperation(
+    withTimeout(
+      updateDoc(attendanceRef, {
+        clientId: params.input.clientId,
+        clientName: params.input.clientName,
+        appointmentId: params.input.appointmentId || '',
+        date: params.input.date,
+        title: params.input.title,
+        description: params.input.description,
+        nextAction: params.input.nextAction || '',
+        returnDate: params.input.returnDate || '',
+        updatedAt: timestamp,
+      }),
+      12000,
+      'A atualização do atendimento demorou demais. Tente novamente.',
+    ),
+  );
 }

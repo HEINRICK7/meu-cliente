@@ -24,6 +24,7 @@ import { useAppointments } from '../../hooks/useAppointments';
 import { useAttendances } from '../../hooks/useAttendances';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
+import { isFirestoreUnavailableError } from '../../services/firestoreHealth';
 import { formatAttendanceDate } from '../../services/attendancesService';
 import { formatAppointmentDate } from '../../services/appointmentsService';
 import { parseCalendarDate } from '../../utils/date';
@@ -108,10 +109,36 @@ function isFutureAppointment(dateValue: string, timeValue: string) {
   return stamp >= Date.now() - 60 * 1000;
 }
 
-function goToRoute(route: 'agenda' | 'atendimentos') {
-  if (typeof window !== 'undefined') {
-    window.location.hash = `#/${route}`;
+  function goToRoute(route: 'agenda' | 'atendimentos') {
+    if (typeof window !== 'undefined') {
+      window.location.hash = `#/${route}`;
+    }
   }
+
+  function getSaveErrorMessage(error: unknown) {
+    if (typeof error !== 'object' || error === null) {
+      return 'Não foi possível salvar o cliente.';
+    }
+
+    const code = 'code' in error ? String((error as { code?: string }).code) : '';
+
+  if (code.includes('permission-denied')) {
+    return 'Sem permissão para salvar este cliente. Verifique as regras do Firebase.';
+  }
+
+  if (code.includes('unavailable')) {
+    return 'O Firebase está indisponível agora. Tente novamente.';
+  }
+
+  if (isFirestoreUnavailableError(error)) {
+    return 'O Firestore ainda não foi criado neste projeto Firebase. Crie o banco padrão para continuar salvando dados.';
+  }
+
+  if (String(error).includes('demorou demais')) {
+    return 'A operação demorou demais. Tente novamente.';
+  }
+
+  return 'Não foi possível salvar o cliente. Tente novamente.';
 }
 
 export function ClientsScreen() {
@@ -271,8 +298,8 @@ export function ClientsScreen() {
       Toast.show({
         content: editingClient ? 'Cliente atualizado.' : 'Cliente criado.',
       });
-    } catch {
-      // Validation already explains what is missing.
+    } catch (error) {
+      Toast.show({ content: getSaveErrorMessage(error) });
     } finally {
       setSubmitting(false);
     }

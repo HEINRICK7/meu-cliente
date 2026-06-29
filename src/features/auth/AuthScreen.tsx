@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, Popup, Toast } from 'antd-mobile';
+import { Button, Card, Form, Input, Popup } from 'antd-mobile';
 import { useMemo, useState } from 'react';
 
 type AuthMode = 'login' | 'signup';
@@ -107,23 +107,19 @@ export function AuthScreen({ mode, onGoogle, onEmailSubmit, onSwitchMode, isBusy
         iconSrc: '/brand/logo-apple.png',
         iconAlt: 'Apple',
         tone: 'apple',
-        onClick: () => {
-          Toast.show({ content: 'Login com Apple em breve' });
-        },
-        disabled: isBusy,
+        onClick: () => undefined,
+        disabled: true,
       },
       {
         label: 'Sign in with Facebook',
         iconSrc: '/brand/logo-facebook.png',
         iconAlt: 'Facebook',
         tone: 'facebook',
-        onClick: () => {
-          Toast.show({ content: 'Login com Facebook em breve' });
-        },
-        disabled: isBusy,
+        onClick: () => undefined,
+        disabled: true,
       },
     ],
-    [isBusy],
+    [],
   );
 
   async function handleEmailSubmit() {

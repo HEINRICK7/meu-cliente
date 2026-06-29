@@ -9,6 +9,8 @@ import {
   where,
 } from 'firebase/firestore';
 import { db, firebaseReady } from '../firebase/client';
+import { withTimeout } from './asyncTimeout';
+import { isFirestoreUnavailable, markFirestoreUnavailable, runFirestoreOperation } from './firestoreHealth';
 import type { Client, ClientStatus, ClientUpsertInput } from '../types/domain';
 
 const CLIENTS_COLLECTION = 'clients';
@@ -40,6 +42,11 @@ export function listenClients(businessId: string, onChange: (clients: Client[]) 
     return () => undefined;
   }
 
+  if (isFirestoreUnavailable()) {
+    onChange([]);
+    return () => undefined;
+  }
+
   const clientsRef = collection(db, CLIENTS_COLLECTION);
   const clientsQuery = query(clientsRef, where('businessId', '==', businessId));
 
@@ -53,6 +60,7 @@ export function listenClients(businessId: string, onChange: (clients: Client[]) 
       onChange(clients);
     },
     (error) => {
+      markFirestoreUnavailable(error);
       onError?.(error);
       onChange([]);
     },
@@ -70,20 +78,26 @@ export async function createClientRecord(params: {
 
   const timestamp = nowIso();
 
-  const docRef = await addDoc(collection(db, CLIENTS_COLLECTION), {
-    businessId: params.businessId,
-    ownerId: params.ownerId,
-    name: params.input.name,
-    phone: params.input.phone,
-    email: params.input.email || '',
-    birthDate: params.input.birthDate || '',
-    notes: params.input.notes || '',
-    status: params.input.status,
-    lastAttendance: '',
-    nextAppointment: '',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
+  const docRef = await runFirestoreOperation(
+    withTimeout(
+      addDoc(collection(db, CLIENTS_COLLECTION), {
+        businessId: params.businessId,
+        ownerId: params.ownerId,
+        name: params.input.name,
+        phone: params.input.phone,
+        email: params.input.email || '',
+        birthDate: params.input.birthDate || '',
+        notes: params.input.notes || '',
+        status: params.input.status,
+        lastAttendance: '',
+        nextAppointment: '',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+      12000,
+      'A criação do cliente demorou demais. Tente novamente.',
+    ),
+  );
 
   return normalizeClient(
     {
@@ -115,13 +129,19 @@ export async function updateClientRecord(params: {
   const timestamp = nowIso();
   const clientRef = doc(db, CLIENTS_COLLECTION, params.clientId);
 
-  await updateDoc(clientRef, {
-    name: params.input.name,
-    phone: params.input.phone,
-    email: params.input.email || '',
-    birthDate: params.input.birthDate || '',
-    notes: params.input.notes || '',
-    status: params.input.status,
-    updatedAt: timestamp,
-  });
+  await runFirestoreOperation(
+    withTimeout(
+      updateDoc(clientRef, {
+        name: params.input.name,
+        phone: params.input.phone,
+        email: params.input.email || '',
+        birthDate: params.input.birthDate || '',
+        notes: params.input.notes || '',
+        status: params.input.status,
+        updatedAt: timestamp,
+      }),
+      12000,
+      'A atualização do cliente demorou demais. Tente novamente.',
+    ),
+  );
 }

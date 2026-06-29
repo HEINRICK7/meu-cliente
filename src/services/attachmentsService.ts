@@ -9,6 +9,8 @@ import {
 } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, firebaseReady, storage } from '../firebase/client';
+import { withTimeout } from './asyncTimeout';
+import { isFirestoreUnavailable, markFirestoreUnavailable, runFirestoreOperation } from './firestoreHealth';
 import type { Attachment, AttachmentUpsertInput } from '../types/domain';
 import { formatCalendarDate, parseCalendarDate } from '../utils/date';
 
@@ -73,6 +75,11 @@ export function listenAttachments(
     return () => undefined;
   }
 
+  if (isFirestoreUnavailable()) {
+    onChange([]);
+    return () => undefined;
+  }
+
   const attachmentsRef = collection(db, ATTACHMENTS_COLLECTION);
   const attachmentsQuery = query(attachmentsRef, where('businessId', '==', businessId));
 
@@ -86,6 +93,7 @@ export function listenAttachments(
       onChange(attachments);
     },
     (error) => {
+      markFirestoreUnavailable(error);
       onError?.(error);
       onChange([]);
     },
@@ -108,8 +116,12 @@ export async function uploadAttachmentFile(params: {
   const storagePath = buildStoragePath(params.businessId, attachmentRef.id, params.file.name);
   const storageRef = ref(storage, storagePath);
 
-  await uploadBytes(storageRef, params.file);
-  const fileUrl = await getDownloadURL(storageRef);
+  await withTimeout(uploadBytes(storageRef, params.file), 15000, 'O envio do arquivo demorou demais. Tente novamente.');
+  const fileUrl = await withTimeout(
+    getDownloadURL(storageRef),
+    8000,
+    'Não foi possível obter a URL do arquivo. Tente novamente.',
+  );
 
   const record: AttachmentUpsertInput = {
     clientId: params.clientId,
@@ -121,13 +133,19 @@ export async function uploadAttachmentFile(params: {
     fileSize: params.file.size,
   };
 
-  await setDoc(attachmentRef, {
-    businessId: params.businessId,
-    ownerId: params.ownerId,
-    ...record,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
+  await runFirestoreOperation(
+    withTimeout(
+      setDoc(attachmentRef, {
+        businessId: params.businessId,
+        ownerId: params.ownerId,
+        ...record,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      }),
+      12000,
+      'O salvamento do anexo demorou demais. Tente novamente.',
+    ),
+  );
 
   return normalizeAttachment(
     {

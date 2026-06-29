@@ -12,6 +12,8 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+const firestoreDatabaseId = import.meta.env.VITE_FIRESTORE_DATABASE_ID?.trim() || 'meu-cliente';
+
 function hasValidFirebaseConfig(config: typeof firebaseConfig) {
   return (
     typeof config.apiKey === 'string' &&
@@ -31,9 +33,10 @@ const app = hasValidFirebaseConfig(firebaseConfig)
     : initializeApp(firebaseConfig)
   : null;
 
+export const firebaseApp = app;
 export const firebaseReady = app !== null;
 export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+export const db = app ? getFirestore(app, firestoreDatabaseId) : null;
 export const storage = app ? getStorage(app) : null;
 
 export const googleAuthProvider = app ? new GoogleAuthProvider() : null;
@@ -54,4 +57,11 @@ export async function ensureAuthPersistence() {
 
   await setPersistence(auth, browserLocalPersistence);
   persistenceReady = true;
+}
+
+export function getFirebasePublicConfig() {
+  return {
+    ...firebaseConfig,
+    firestoreDatabaseId,
+  };
 }
