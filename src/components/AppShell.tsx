@@ -8,12 +8,13 @@ import {
   UserOutline,
 } from 'antd-mobile-icons';
 import type { ReactNode } from 'react';
-import type { AppRoute } from '../types/domain';
+import type { AppRoute, AuthSession } from '../types/domain';
 
 type AppShellProps = {
   activeRoute: AppRoute;
   onNavigate: (route: AppRoute) => void;
   children: ReactNode;
+  session?: AuthSession | null;
 };
 
 const navItems: Array<{ route: AppRoute; label: string; icon: ReactNode }> = [
@@ -47,8 +48,21 @@ const pageMeta: Record<AppRoute, { title: string; subtitle: string }> = {
   },
 };
 
-export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
+function shortName(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('');
+}
+
+export function AppShell({ activeRoute, onNavigate, children, session }: AppShellProps) {
   const meta = pageMeta[activeRoute];
+  const userName = session?.name || 'Usuário';
+  const userEmail = session?.email || '';
+  const userPhoto = session?.photoURL;
+
   return (
     <div className="app-frame">
       <div className="app-shell">
@@ -68,11 +82,24 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
                 <div className="app-header__subtitle app-header__subtitle--brand">Organização simples do dia</div>
               </div>
             </div>
-            <div className="app-header__actions" aria-hidden="true">
-              <button type="button" className="icon-chip">
+            <div className="app-header__actions">
+              <div className="app-user-chip" aria-label={`Usuário logado: ${userName}`}>
+                <div className="app-user-chip__avatar">
+                  {userPhoto ? (
+                    <img src={userPhoto} alt="" aria-hidden="true" className="app-user-chip__image" />
+                  ) : (
+                    <span>{shortName(userName)}</span>
+                  )}
+                </div>
+                <div className="app-user-chip__copy">
+                  <div className="app-user-chip__name">{userName}</div>
+                  {userEmail ? <div className="app-user-chip__email">{userEmail}</div> : null}
+                </div>
+              </div>
+              <button type="button" className="icon-chip" aria-label="Nova ação">
                 <AddOutline />
               </button>
-              <button type="button" className="icon-chip">
+              <button type="button" className="icon-chip" aria-label="Notificações">
                 <BellOutline />
               </button>
             </div>

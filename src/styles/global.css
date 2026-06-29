@@ -138,7 +138,74 @@ button {
 
 .app-header__actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.app-user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 170px;
+  padding: 6px 10px 6px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #fff;
+  overflow: hidden;
+}
+
+.app-user-chip__avatar,
+.more-account__avatar {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.app-user-chip__image,
+.more-account__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.app-user-chip__copy {
+  min-width: 0;
+  display: grid;
+}
+
+.app-user-chip__name,
+.app-user-chip__email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-user-chip__name {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.app-user-chip__email {
+  font-size: 10px;
+  line-height: 1.2;
+  opacity: 0.82;
+}
+
+.more-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .app-header__copy {
