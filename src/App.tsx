@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { Toast } from 'antd-mobile';
 import { AppShell } from './components/AppShell';
+import { LoadingState } from './components/LoadingState';
+import { useAuth } from './hooks/useAuth';
 import { useHashRoute } from './hooks/useHashRoute';
-import type { AuthValues } from './features/auth/AuthScreen';
 import { LoginScreen } from './features/auth/LoginScreen';
 import { SignupScreen } from './features/auth/SignupScreen';
 import { HomeScreen } from './features/home/HomeScreen';
@@ -9,14 +11,8 @@ import { ClientsScreen } from './features/clients/ClientsScreen';
 import { ScheduleScreen } from './features/schedule/ScheduleScreen';
 import { AttendancesScreen } from './features/attendances/AttendancesScreen';
 import { MoreScreen } from './features/more/MoreScreen';
-import {
-  clearAuthSession,
-  readAuthSession,
-  signInWithEmail,
-  signInWithSocial,
-  signUpWithEmail,
-} from './services/mockAuth';
-import type { AppRoute, AuthRoute, Route, SocialProvider } from './types/domain';
+import { getAuthErrorMessage, signInWithGoogle, signOut } from './services/authService';
+import type { AppRoute, AuthRoute, Route } from './types/domain';
 
 const screens: Record<AppRoute, (onLogout: () => void) => JSX.Element> = {
   inicio: () => <HomeScreen />,
@@ -36,9 +32,13 @@ function authRouteFrom(route: Route): AuthRoute {
 
 export default function App() {
   const { route, navigate } = useHashRoute();
-  const [session, setSession] = useState(() => readAuthSession());
+  const { session, loading } = useAuth();
 
   useEffect(() => {
+    if (loading) {
+      return;
+    }
+
     if (session && !isAppRoute(route)) {
       navigate('inicio');
       return;
@@ -47,47 +47,38 @@ export default function App() {
     if (!session && isAppRoute(route)) {
       navigate('entrar');
     }
-  }, [navigate, route, session]);
+  }, [loading, navigate, route, session]);
 
-  const handleLogout = () => {
-    clearAuthSession();
-    setSession(null);
-    navigate('entrar');
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('entrar');
+    } catch {
+      Toast.show({ content: 'Não foi possível sair agora.' });
+    }
   };
 
-  const handleSignIn = (values: AuthValues) => {
-    const nextSession = signInWithEmail(values);
-    setSession(nextSession);
-    navigate('inicio');
+  const handleGoogleSignIn = async () => {
+    try {
+      Toast.show({ content: 'Conectando com Google...' });
+      await signInWithGoogle();
+      navigate('inicio');
+    } catch (error) {
+      Toast.show({ content: getAuthErrorMessage(error) });
+    }
   };
 
-  const handleSignUp = (values: AuthValues) => {
-    const nextSession = signUpWithEmail(values);
-    setSession(nextSession);
-    navigate('inicio');
-  };
-
-  const handleSocial = (provider: SocialProvider) => {
-    const nextSession = signInWithSocial(provider);
-    setSession(nextSession);
-    navigate('inicio');
-  };
+  if (loading) {
+    return <LoadingState lines={2} />;
+  }
 
   if (!session) {
     const authRoute = authRouteFrom(route);
 
     return authRoute === 'cadastro' ? (
-      <SignupScreen
-        onSubmit={handleSignUp}
-        onSocial={handleSocial}
-        onSwitchMode={() => navigate('entrar')}
-      />
+      <SignupScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('entrar')} />
     ) : (
-      <LoginScreen
-        onSubmit={handleSignIn}
-        onSocial={handleSocial}
-        onSwitchMode={() => navigate('cadastro')}
-      />
+      <LoginScreen onGoogle={handleGoogleSignIn} onSwitchMode={() => navigate('cadastro')} />
     );
   }
 

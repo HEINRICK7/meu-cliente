@@ -1,7 +1,7 @@
 export type AppRoute = 'inicio' | 'clientes' | 'agenda' | 'atendimentos' | 'mais';
 export type AuthRoute = 'entrar' | 'cadastro';
 export type Route = AppRoute | AuthRoute;
-export type SocialProvider = 'google' | 'apple' | 'facebook';
+export type SocialProvider = 'google';
 
 export type ClientStatus = 'ativo' | 'inativo';
 export type AppointmentStatus = 'agendado' | 'confirmado' | 'atendido' | 'cancelado' | 'faltou';
@@ -102,6 +102,10 @@ export interface AuthSession {
   id: string;
   name: string;
   email: string;
-  provider: SocialProvider | 'email';
+  provider: SocialProvider;
+  businessId: string;
+  businessName: string;
+  role: UserRole;
+  photoURL?: string;
   createdAt: string;
 }

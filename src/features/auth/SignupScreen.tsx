@@ -1,20 +1,10 @@
-import type { SocialProvider } from '../../types/domain';
-import type { AuthValues } from './AuthScreen';
 import { AuthScreen } from './AuthScreen';
 
 type SignupScreenProps = {
-  onSubmit: (values: AuthValues) => void;
-  onSocial: (provider: SocialProvider) => void;
+  onGoogle: () => void;
   onSwitchMode: () => void;
 };
 
-export function SignupScreen({ onSubmit, onSocial, onSwitchMode }: SignupScreenProps) {
-  return (
-    <AuthScreen
-      mode="signup"
-      onSubmit={onSubmit}
-      onSocial={onSocial}
-      onSwitchMode={onSwitchMode}
-    />
-  );
+export function SignupScreen({ onGoogle, onSwitchMode }: SignupScreenProps) {
+  return <AuthScreen mode="signup" onGoogle={onGoogle} onSwitchMode={onSwitchMode} />;
 }
