@@ -61,15 +61,16 @@ function SocialButton({ label, iconLabel, tone, onClick, disabled, loading }: So
 }
 
 export function AuthScreen({ mode, onGoogle, onSwitchMode, isBusy = false }: AuthScreenProps) {
+  const googleButton: SocialOption = {
+    label: 'Entrar com Google',
+    iconLabel: 'G',
+    tone: 'google',
+    onClick: onGoogle,
+    disabled: isBusy,
+    loading: isBusy,
+  };
+
   const socialButtons: SocialOption[] = [
-      {
-        label: 'Entrar com Google',
-        iconLabel: 'G',
-        tone: 'google',
-        onClick: onGoogle,
-        disabled: isBusy,
-        loading: isBusy,
-      },
     {
       label: 'Entrar com Apple',
       iconLabel: 'A',
@@ -106,6 +107,7 @@ export function AuthScreen({ mode, onGoogle, onSwitchMode, isBusy = false }: Aut
           <p className="auth-subtitle">{subtitleForMode(mode)}</p>
 
           <div className="auth-social-list">
+            <SocialButton {...googleButton} />
             {socialButtons.map((button) => (
               <SocialButton key={button.label} {...button} />
             ))}

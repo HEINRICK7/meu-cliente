@@ -14,7 +14,8 @@ async function registerServiceWorker() {
   }
 
   try {
-    await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await registration.update();
   } catch {
     // O app continua funcionando sem SW quando o ambiente não permitir registro.
   }
