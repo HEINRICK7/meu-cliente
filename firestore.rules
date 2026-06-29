@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny until the app has Firebase Auth and business-scoped access rules.
+    // This prevents accidental public access during the next implementation step.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

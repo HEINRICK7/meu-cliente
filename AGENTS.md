@@ -210,6 +210,8 @@ O sistema precisa responder rapidamente a tres perguntas:
 
 - Usar o diretorio atual como contexto.
 - Siga este `AGENTS.md` e a definicao do produto `Meu Cliente`.
+- Preferir usar o `lead.yaml` como agente principal para coordenar tarefas de ponta a ponta.
+- Seguir o fluxo por modulo definido em `docs/WORKFLOW_AGENTS.md` e no `lead.yaml`.
 - Usar `docs/UX_UI.md` como referencia obrigatoria sempre que a tarefa envolver tela, fluxo ou componente visual.
 - Tratar `docs/UX_REFERENCES.md` apenas como inspiracao visual, nunca como regra primaria.
 - Proteger a simplicidade da experiencia.
@@ -221,3 +223,26 @@ O sistema precisa responder rapidamente a tres perguntas:
 - Informar arquivos alterados ao final.
 - Explicar como testar.
 - Indicar o proximo passo recomendado.
+
+## Fluxo Git/GitHub
+
+- Usar branch por tarefa.
+- Nunca desenvolver feature direto na `main`.
+- Usar Conventional Commits.
+- Rodar build antes de commit.
+- Nao versionar `.env.local`.
+- Nao versionar `node_modules`.
+- Nao fazer push, merge ou deploy sem confirmacao explicita.
+- Preferir commits pequenos e focados.
+- O agente git pode criar branch e commit local automaticamente apos validacao.
+- Push e PR precisam de confirmacao do usuario.
+
+## Fluxo por modulo
+
+- O Lead deve planejar o modulo antes de alterar qualquer coisa.
+- O Lead deve limitar o escopo ao modulo atual.
+- O Lead deve usar o agente git_codex para branch, diff e commit local.
+- O Lead deve usar uiux antes de frontend em telas e fluxos.
+- O Lead deve usar firebase antes de mexer em Auth, Firestore, Storage ou rules.
+- O Lead deve usar reviewer e tester antes de fechar o modulo.
+- O Lead deve perguntar antes de push, salvo autorizacao explicita de modo automatico para o modulo.

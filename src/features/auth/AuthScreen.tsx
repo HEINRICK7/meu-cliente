@@ -1,13 +1,18 @@
 import {
   CalendarOutline,
   CheckCircleOutline,
+  AppOutline,
+  GlobalOutline,
   PhoneFill,
+  TeamOutline,
   RightOutline,
 } from 'antd-mobile-icons';
 import { Button, Card, Divider, Form, Input, Tag } from 'antd-mobile';
+import type { ComponentType, SVGProps } from 'react';
 import type { SocialProvider } from '../../types/domain';
 
 type AuthMode = 'login' | 'signup';
+type SocialIcon = ComponentType<SVGProps<SVGSVGElement>>;
 
 export type AuthValues = {
   name?: string;
@@ -22,10 +27,10 @@ type AuthScreenProps = {
   onSwitchMode: () => void;
 };
 
-const socialButtons: Array<{ provider: SocialProvider; label: string; tone: string; accent: string }> = [
-  { provider: 'google', label: 'Google', tone: 'G', accent: '#4285F4' },
-  { provider: 'apple', label: 'Apple', tone: 'A', accent: '#111111' },
-  { provider: 'facebook', label: 'Facebook', tone: 'f', accent: '#1877F2' },
+const socialButtons: Array<{ provider: SocialProvider; label: string; icon: SocialIcon; accent: string }> = [
+  { provider: 'google', label: 'Google', icon: GlobalOutline, accent: '#4285F4' },
+  { provider: 'apple', label: 'Apple', icon: AppOutline, accent: '#111111' },
+  { provider: 'facebook', label: 'Facebook', icon: TeamOutline, accent: '#1877F2' },
 ];
 
 function titleForMode(mode: AuthMode) {
@@ -122,7 +127,7 @@ export function AuthScreen({ mode, onSubmit, onSocial, onSwitchMode }: AuthScree
                   onClick={() => onSocial(item.provider)}
                 >
                   <span className="auth-social__icon" style={{ backgroundColor: item.accent }}>
-                    {item.tone}
+                    <item.icon className="auth-social__glyph" aria-hidden="true" />
                   </span>
                   <span>{item.label}</span>
                 </Button>

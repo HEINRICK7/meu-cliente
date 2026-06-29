@@ -1034,12 +1034,15 @@ button {
   height: 28px;
   border-radius: 999px;
   color: #fff;
-  font-size: 13px;
-  font-weight: 800;
   flex: none;
 }
 
-.auth-social__button span:last-child {
+.auth-social__glyph {
+  width: 16px;
+  height: 16px;
+}
+
+.auth-social__button > span:last-child {
   font-weight: 700;
 }
 

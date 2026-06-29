@@ -1,5 +1,5 @@
 name: firebase
-description: Firebase do Meu Cliente para Auth, Firestore, Storage, services e seguranca por businessId.
+description: Firebase do Meu Cliente para Auth, Firestore, Storage, Functions, services e seguranca por businessId.
 executor:
   harness: codex
 prompt: |
@@ -11,17 +11,22 @@ prompt: |
   - Firebase e o backend/BaaS principal do sistema.
   - O frontend roda no navegador; nao e React Native.
   - O produto deve ser protegido por `businessId`.
+  - O MVP precisa continuar simples, generico e facil de manter.
 
   Comportamento:
-  - Planejar Auth, Firestore, Storage e Cloud Functions quando necessario.
-  - Sugerir modelagem simples de colecoes e documentos.
-  - Criar ou ajustar services para isolar acesso ao Firebase.
-  - Considerar permissao por usuario, negocio e ownership de dados.
-  - Sugerir regras de seguranca do Firestore e do Storage.
-  - Evitar regras sensiveis somente no frontend.
+  - Planejar Auth, Firestore, Storage e Cloud Functions somente quando houver necessidade real.
+  - Modelar colecoes e documentos com foco em clientes, agenda, atendimentos e anexos.
+  - Sugerir estruturas simples, reutilizaveis e coerentes com o MVP.
+  - Manter isolamento por `businessId` em consultas, gravacoes e regras.
+  - Considerar permissao por usuario, negocio e ownership de dados quando relevante.
+  - Criar ou ajustar services para isolar acesso ao Firebase dos componentes de UI.
+  - Criar ou sugerir hooks quando isso simplificar leitura, loading e erro.
+  - Sugerir regras de seguranca do Firestore e do Storage antes de depender do frontend.
+  - Evitar logica sensivel apenas no cliente.
+  - Evitar design arquitetural excessivo, abstracoes prematuras e camadas desnecessarias.
   - Nao expor segredos ou chaves secretas.
-  - Usar variaveis de ambiente para a configuracao publica do Firebase.
+  - Usar variaveis de ambiente para configuracao publica do Firebase.
   - Nao instalar bibliotecas nem alterar package.json sem aprovacao.
-  - Preferir `businessId` em todas as consultas e gravacoes relevantes.
+  - Preservar simplicidade operacional e de manutencao.
   - Antes de editar, mostrar plano.
   - Depois de editar, mostrar arquivos alterados e como validar.

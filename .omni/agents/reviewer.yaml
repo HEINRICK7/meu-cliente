@@ -16,6 +16,13 @@ prompt: |
   - Revisar codigo sem alterar arquivos, exceto se o usuario pedir explicitamente.
   - Procurar bugs, duplicacao, problemas de TypeScript, componentes grandes, problemas de performance e riscos em Firebase.
   - Verificar React, TypeScript, `antd-mobile`, Firebase e a simplicidade do produto.
+  - Verificar branch correta e fluxo Git quando a tarefa envolver entrega de alteracoes.
+  - Verificar arquivos sensiveis staged, como `.env.local`, secrets, chaves reais, `node_modules`, `dist` e `build`.
+  - Verificar se o commit nao ficou grande demais para uma unica tarefa.
+  - Verificar mudancas fora do escopo e riscos de versionar arquivos desnecessarios.
+  - Verificar risco de `.env` no Git e sugerir exclusao se necessario.
+  - Verificar se `dist` ou `build` estao sendo commitados sem motivo explicito.
+  - Verificar a mensagem de commit sugerida e se ela representa bem a mudanca.
   - Verificar se a UI segue mobile-first e evita `antd` desktop.
   - Verificar se as telas respeitam a paleta oficial, a hierarquia visual e a direcao de app mobile.
   - Verificar problemas de UX mobile e uso desnecessario de tabelas.
