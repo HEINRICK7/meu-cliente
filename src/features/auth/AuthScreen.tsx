@@ -43,12 +43,18 @@ export function AuthScreen({ mode, onGoogle, onSwitchMode, isBusy = false }: Aut
             </div>
             <div>
               <div className="auth-brand__eyebrow">Meu Cliente</div>
-              <div className="auth-brand__subtitle">Simples, rápido e mobile-first</div>
+              <div className="auth-brand__subtitle">Gestão simples do dia a dia</div>
             </div>
           </div>
 
           <div className="auth-hero__title">{titleForMode(mode)}</div>
           <p className="auth-hero__text">{subtitleForMode(mode)}</p>
+
+          <div className="auth-hero__badge-row" aria-hidden="true">
+            <span>Google</span>
+            <span>Clientes</span>
+            <span>Agenda</span>
+          </div>
 
           <Button
             block
@@ -69,6 +75,10 @@ export function AuthScreen({ mode, onGoogle, onSwitchMode, isBusy = false }: Aut
               {switchActionForMode(mode)}
               <RightOutline />
             </Button>
+          </div>
+
+          <div className="auth-footer__text auth-footer__text--center">
+            Entrar e criar conta usam a mesma experiência com Google.
           </div>
         </Card>
       </div>

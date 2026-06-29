@@ -934,6 +934,22 @@ button {
   color: rgba(255, 255, 255, 0.84);
 }
 
+.auth-hero__badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.auth-hero__badge-row span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .auth-hero__chips {
   display: flex;
   flex-wrap: wrap;
@@ -1091,6 +1107,10 @@ button {
   color: var(--mc-text-soft);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.auth-footer__text--center {
+  text-align: center;
 }
 
 @media (min-width: 720px) {
