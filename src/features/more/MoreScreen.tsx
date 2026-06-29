@@ -155,6 +155,13 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
         await disablePushNotifications(session.id);
         Toast.show({ content: 'Notificações desativadas neste aparelho.' });
       } else {
+        if (pushPermission === 'denied') {
+          Toast.show({
+            content: 'As notificações estão bloqueadas no navegador. Libere a permissão nas configurações do site.',
+          });
+          return;
+        }
+
         await enablePushNotifications(session.id);
         Toast.show({ content: 'Notificações ativadas neste aparelho.' });
       }

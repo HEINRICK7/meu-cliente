@@ -11,6 +11,7 @@ import {
 import { db, firebaseReady } from '../firebase/client';
 import { withTimeout } from './asyncTimeout';
 import { isFirestoreUnavailable, markFirestoreUnavailable, runFirestoreOperation } from './firestoreHealth';
+import { normalizeFirestoreId } from './firestoreIds';
 import type { Attendance, AttendanceUpsertInput } from '../types/domain';
 import { formatCalendarDate, parseCalendarDate, toDateKey } from '../utils/date';
 
@@ -76,8 +77,9 @@ export function listenAttendances(
     return () => undefined;
   }
 
+  const normalizedBusinessId = normalizeFirestoreId(businessId, businessId);
   const attendancesRef = collection(db, ATTENDANCES_COLLECTION);
-  const attendancesQuery = query(attendancesRef, where('businessId', '==', businessId));
+  const attendancesQuery = query(attendancesRef, where('businessId', '==', normalizedBusinessId));
 
   return onSnapshot(
     attendancesQuery,
@@ -106,11 +108,17 @@ export async function createAttendanceRecord(params: {
   }
 
   const timestamp = nowIso();
+  const businessId = normalizeFirestoreId(params.businessId);
+  const ownerId = normalizeFirestoreId(params.ownerId);
+
+  if (!businessId || !ownerId) {
+    throw new Error('Dados de negócio inválidos para salvar o atendimento.');
+  }
   const docRef = await runFirestoreOperation(
     withTimeout(
       addDoc(collection(db, ATTENDANCES_COLLECTION), {
-        businessId: params.businessId,
-        ownerId: params.ownerId,
+        businessId,
+        ownerId,
         clientId: params.input.clientId,
         clientName: params.input.clientName,
         appointmentId: params.input.appointmentId || '',
@@ -129,8 +137,8 @@ export async function createAttendanceRecord(params: {
 
   return normalizeAttendance(
     {
-      businessId: params.businessId,
-      ownerId: params.ownerId,
+      businessId,
+      ownerId,
       clientId: params.input.clientId,
       clientName: params.input.clientName,
       appointmentId: params.input.appointmentId || '',

@@ -25,6 +25,7 @@ export function useClients(businessId: string | null, ownerId: string | null): U
     setLoading(true);
     const unsubscribe = listenClients(
       businessId,
+      ownerId,
       (nextClients) => {
         setClients(nextClients);
         setLoading(false);

@@ -11,6 +11,7 @@ import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { db, firebaseReady, storage } from '../firebase/client';
 import { withTimeout } from './asyncTimeout';
 import { isFirestoreUnavailable, markFirestoreUnavailable, runFirestoreOperation } from './firestoreHealth';
+import { normalizeFirestoreId } from './firestoreIds';
 import type { Attachment, AttachmentUpsertInput } from '../types/domain';
 import { formatCalendarDate, parseCalendarDate } from '../utils/date';
 
@@ -80,8 +81,9 @@ export function listenAttachments(
     return () => undefined;
   }
 
+  const normalizedBusinessId = normalizeFirestoreId(businessId, businessId);
   const attachmentsRef = collection(db, ATTACHMENTS_COLLECTION);
-  const attachmentsQuery = query(attachmentsRef, where('businessId', '==', businessId));
+  const attachmentsQuery = query(attachmentsRef, where('businessId', '==', normalizedBusinessId));
 
   return onSnapshot(
     attachmentsQuery,
@@ -113,7 +115,13 @@ export async function uploadAttachmentFile(params: {
 
   const timestamp = nowIso();
   const attachmentRef = doc(collection(db, ATTACHMENTS_COLLECTION));
-  const storagePath = buildStoragePath(params.businessId, attachmentRef.id, params.file.name);
+  const businessId = normalizeFirestoreId(params.businessId);
+  const ownerId = normalizeFirestoreId(params.ownerId);
+
+  if (!businessId || !ownerId) {
+    throw new Error('Dados de negócio inválidos para salvar o anexo.');
+  }
+  const storagePath = buildStoragePath(businessId, attachmentRef.id, params.file.name);
   const storageRef = ref(storage, storagePath);
 
   await withTimeout(uploadBytes(storageRef, params.file), 15000, 'O envio do arquivo demorou demais. Tente novamente.');
@@ -136,8 +144,8 @@ export async function uploadAttachmentFile(params: {
   await runFirestoreOperation(
     withTimeout(
       setDoc(attachmentRef, {
-        businessId: params.businessId,
-        ownerId: params.ownerId,
+        businessId,
+        ownerId,
         ...record,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -149,8 +157,8 @@ export async function uploadAttachmentFile(params: {
 
   return normalizeAttachment(
     {
-      businessId: params.businessId,
-      ownerId: params.ownerId,
+      businessId,
+      ownerId,
       ...record,
       createdAt: timestamp,
       updatedAt: timestamp,

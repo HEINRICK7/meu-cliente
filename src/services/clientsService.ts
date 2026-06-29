@@ -11,6 +11,7 @@ import {
 import { db, firebaseReady } from '../firebase/client';
 import { withTimeout } from './asyncTimeout';
 import { isFirestoreUnavailable, markFirestoreUnavailable, runFirestoreOperation } from './firestoreHealth';
+import { normalizeFirestoreId } from './firestoreIds';
 import type { Client, ClientStatus, ClientUpsertInput } from '../types/domain';
 
 const CLIENTS_COLLECTION = 'clients';
@@ -36,7 +37,12 @@ function normalizeClient(data: Record<string, unknown>, id: string): Client {
   };
 }
 
-export function listenClients(businessId: string, onChange: (clients: Client[]) => void, onError?: (error: unknown) => void): Unsubscribe {
+export function listenClients(
+  businessId: string,
+  ownerId: string | null,
+  onChange: (clients: Client[]) => void,
+  onError?: (error: unknown) => void,
+): Unsubscribe {
   if (!firebaseReady || !db) {
     onChange([]);
     return () => undefined;
@@ -47,17 +53,36 @@ export function listenClients(businessId: string, onChange: (clients: Client[]) 
     return () => undefined;
   }
 
+  const normalizedBusinessId = normalizeFirestoreId(businessId, businessId);
+  const normalizedOwnerId = normalizeFirestoreId(ownerId, ownerId ?? '');
   const clientsRef = collection(db, CLIENTS_COLLECTION);
-  const clientsQuery = query(clientsRef, where('businessId', '==', businessId));
+  const businessQuery = query(clientsRef, where('businessId', '==', normalizedBusinessId));
+  const businessClients = new Map<string, Client>();
+  const ownerClients = new Map<string, Client>();
 
-  return onSnapshot(
-    clientsQuery,
+  const emitClients = () => {
+    const merged = new Map<string, Client>();
+
+    for (const client of businessClients.values()) {
+      merged.set(client.id, client);
+    }
+
+    for (const client of ownerClients.values()) {
+      merged.set(client.id, client);
+    }
+
+    onChange([...merged.values()].sort((left, right) => (right.createdAt || '').localeCompare(left.createdAt || '')));
+  };
+
+  const unsubscribeBusiness = onSnapshot(
+    businessQuery,
     (snapshot) => {
-      const clients = snapshot.docs
-        .map((document) => normalizeClient(document.data() as Record<string, unknown>, document.id))
-        .sort((left, right) => (right.createdAt || '').localeCompare(left.createdAt || ''));
-
-      onChange(clients);
+      businessClients.clear();
+      snapshot.docs.forEach((document) => {
+        const client = normalizeClient(document.data() as Record<string, unknown>, document.id);
+        businessClients.set(client.id, client);
+      });
+      emitClients();
     },
     (error) => {
       markFirestoreUnavailable(error);
@@ -65,6 +90,31 @@ export function listenClients(businessId: string, onChange: (clients: Client[]) 
       onChange([]);
     },
   );
+
+  const unsubscribeOwner =
+    normalizedOwnerId.length > 0
+      ? onSnapshot(
+          query(clientsRef, where('ownerId', '==', normalizedOwnerId)),
+          (snapshot) => {
+            ownerClients.clear();
+            snapshot.docs.forEach((document) => {
+              const client = normalizeClient(document.data() as Record<string, unknown>, document.id);
+              ownerClients.set(client.id, client);
+            });
+            emitClients();
+          },
+          (error) => {
+            markFirestoreUnavailable(error);
+            onError?.(error);
+            onChange([]);
+          },
+        )
+      : () => undefined;
+
+  return () => {
+    unsubscribeBusiness();
+    unsubscribeOwner();
+  };
 }
 
 export async function createClientRecord(params: {
@@ -77,12 +127,18 @@ export async function createClientRecord(params: {
   }
 
   const timestamp = nowIso();
+  const businessId = normalizeFirestoreId(params.businessId);
+  const ownerId = normalizeFirestoreId(params.ownerId);
+
+  if (!businessId || !ownerId) {
+    throw new Error('Dados de negócio inválidos para salvar o cliente.');
+  }
 
   const docRef = await runFirestoreOperation(
     withTimeout(
       addDoc(collection(db, CLIENTS_COLLECTION), {
-        businessId: params.businessId,
-        ownerId: params.ownerId,
+        businessId,
+        ownerId,
         name: params.input.name,
         phone: params.input.phone,
         email: params.input.email || '',
@@ -101,8 +157,8 @@ export async function createClientRecord(params: {
 
   return normalizeClient(
     {
-      businessId: params.businessId,
-      ownerId: params.ownerId,
+      businessId,
+      ownerId,
       name: params.input.name,
       phone: params.input.phone,
       email: params.input.email || '',
