@@ -1,7 +1,7 @@
 import {
   FileOutline,
+  LinkOutline,
   QuestionCircleOutline,
-  SetOutline,
   UserOutline,
 } from 'antd-mobile-icons';
 import { Button, Card, List, Toast } from 'antd-mobile';
@@ -9,10 +9,9 @@ import { useOrganization } from '../../hooks/useOrganization';
 import type { AuthSession } from '../../types/domain';
 
 const actions = [
-  { title: 'Configurações', icon: <SetOutline /> },
-  { title: 'Preferências de agenda', icon: <FileOutline /> },
-  { title: 'Modelos rápidos', icon: <FileOutline /> },
-  { title: 'Ajuda', icon: <QuestionCircleOutline /> },
+  { title: 'Copiar ID do negócio', icon: <LinkOutline /> },
+  { title: 'Copiar e-mail', icon: <FileOutline /> },
+  { title: 'Copiar nome', icon: <UserOutline /> },
   { title: 'Sair', icon: <QuestionCircleOutline /> },
 ];
 
@@ -41,6 +40,20 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
     admin: 'Admin',
     attendant: 'Atendente',
   }[userRole];
+
+  async function copyText(value: string, label: string) {
+    if (!value) {
+      Toast.show({ content: `Sem ${label.toLowerCase()} para copiar.` });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      Toast.show({ content: `${label} copiado.` });
+    } catch {
+      Toast.show({ content: `Não foi possível copiar ${label.toLowerCase()}.` });
+    }
+  }
 
   return (
     <div className="screen-stack">
@@ -85,12 +98,10 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
           fill="solid"
           shape="rounded"
           style={{ marginTop: 12 }}
-          onClick={() => {
-            Toast.show({ content: 'Perfil da conta será integrado depois.' });
-          }}
+          onClick={() => copyText(session?.businessId ?? '', 'ID do negócio')}
         >
-          <UserOutline />
-          Ver perfil da conta
+          <LinkOutline />
+          Copiar ID do negócio
         </Button>
       </Card>
 
@@ -133,7 +144,17 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
                   return;
                 }
 
-                Toast.show({ content: `${action.title} será implementado depois.` });
+                if (action.title === 'Copiar ID do negócio') {
+                  void copyText(session?.businessId ?? '', 'ID do negócio');
+                  return;
+                }
+
+                if (action.title === 'Copiar e-mail') {
+                  void copyText(userEmail, 'E-mail');
+                  return;
+                }
+
+                void copyText(userLabel, 'Nome');
               }}
             >
               <span className="more-list__item">
