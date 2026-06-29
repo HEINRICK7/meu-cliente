@@ -1,0 +1,77 @@
+import {
+  FileOutline,
+  QuestionCircleOutline,
+  SetOutline,
+  UserOutline,
+} from 'antd-mobile-icons';
+import { Button, Card, List, Toast } from 'antd-mobile';
+import { mockBusiness } from '../../services/mockData';
+
+const actions = [
+  { title: 'Configurações', icon: <SetOutline /> },
+  { title: 'Preferências de agenda', icon: <FileOutline /> },
+  { title: 'Modelos rápidos', icon: <FileOutline /> },
+  { title: 'Ajuda', icon: <QuestionCircleOutline /> },
+  { title: 'Sair', icon: <QuestionCircleOutline /> },
+];
+
+type MoreScreenProps = {
+  onLogout?: () => void;
+};
+
+export function MoreScreen({ onLogout }: MoreScreenProps) {
+  return (
+    <div className="screen-stack">
+      <Card className="soft-card highlight-card">
+        <div className="section-head">
+          <div>
+            <div className="section-label">Conta</div>
+            <div className="section-title">{mockBusiness.name}</div>
+          </div>
+        </div>
+        <p className="muted-text">{mockBusiness.segment}</p>
+        <Button
+          block
+          color="primary"
+          fill="solid"
+          shape="rounded"
+          style={{ marginTop: 12 }}
+          onClick={() => {
+            Toast.show({ content: 'Perfil da conta será integrado depois.' });
+          }}
+        >
+          <UserOutline />
+          Ver perfil da conta
+        </Button>
+      </Card>
+
+      <Card className="soft-card">
+        <List className="compact-list">
+          {actions.map((action) => (
+            <List.Item
+              key={action.title}
+              onClick={() => {
+                if (action.title === 'Sair') {
+                  if (onLogout) {
+                    onLogout();
+                    return;
+                  }
+
+                  Toast.show({ content: 'Saindo da conta...' });
+                  return;
+                }
+
+                Toast.show({ content: `${action.title} será implementado depois.` });
+              }}
+            >
+              <span className="more-list__item">
+                {action.icon}
+                <span>{action.title}</span>
+              </span>
+            </List.Item>
+          ))}
+        </List>
+      </Card>
+    </div>
+  );
+}
