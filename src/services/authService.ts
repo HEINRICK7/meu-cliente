@@ -102,8 +102,21 @@ function shouldFallbackToRedirect(error: unknown) {
   return (
     code.includes('auth/popup-blocked') ||
     code.includes('auth/operation-not-supported-in-this-environment') ||
-    code.includes('auth/web-storage-unsupported')
+    code.includes('auth/web-storage-unsupported') ||
+    code.includes('auth/internal-error') ||
+    code.includes('auth/network-request-failed')
   );
+}
+
+function shouldPreferRedirect() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const isStandalonePwa = window.matchMedia('(display-mode: standalone)').matches || 'standalone' in window.navigator;
+  const isNarrowViewport = window.matchMedia('(max-width: 767px)').matches;
+
+  return isStandalonePwa || isNarrowViewport;
 }
 
 export function listenToAuthSession(onChange: (session: AuthSession | null) => void) {
@@ -131,6 +144,11 @@ export async function signInWithGoogle() {
   }
 
   await ensureAuthPersistence();
+
+  if (shouldPreferRedirect()) {
+    await signInWithRedirect(auth, googleAuthProvider);
+    return { mode: 'redirect' as const };
+  }
 
   try {
     const credential = await signInWithPopup(auth, googleAuthProvider);
@@ -172,6 +190,10 @@ export function getAuthErrorMessage(error: unknown) {
 
   if (code.includes('account-exists-with-different-credential')) {
     return 'Esse e-mail já existe com outro método de login.';
+  }
+
+  if (code.includes('auth/unauthorized-domain')) {
+    return 'Este domínio não está autorizado no Firebase. Verifique a lista de domínios permitidos.';
   }
 
   if (code.includes('invalid-api-key')) {
