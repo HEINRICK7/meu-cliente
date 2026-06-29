@@ -5,6 +5,13 @@ const APP_SHELL = [
   '/manifest.webmanifest',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/brand/app-icon.png',
+  '/brand/app-logo.png',
+  '/brand/app-logo-mark.png',
+  '/brand/app-logo-wide.png',
+  '/brand/app-logo-card.png',
+  '/brand/app-logo-hero.png',
+  '/brand/app-logo-alt.png',
 ];
 
 self.addEventListener('install', (event) => {

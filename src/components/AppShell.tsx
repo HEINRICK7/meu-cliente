@@ -55,7 +55,14 @@ export function AppShell({ activeRoute, onNavigate, children }: AppShellProps) {
         <header className="app-header app-header--compact">
           <div className="app-header__topbar">
             <div className="app-header__brand">
-              <div className="app-header__brand-badge">MC</div>
+              <div className="app-header__brand-badge">
+                <img
+                  src="/brand/app-logo-mark.png"
+                  alt=""
+                  className="app-header__brand-image"
+                  aria-hidden="true"
+                />
+              </div>
               <div>
                 <div className="app-header__eyebrow">Meu Cliente</div>
                 <div className="app-header__subtitle app-header__subtitle--brand">Organização simples do dia</div>

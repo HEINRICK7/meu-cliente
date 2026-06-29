@@ -122,10 +122,18 @@ button {
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
   font-weight: 800;
+  overflow: hidden;
 }
 
 .app-header__brand-badge {
   border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.app-header__brand-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .app-header__actions {
