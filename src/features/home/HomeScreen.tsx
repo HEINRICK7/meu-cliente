@@ -1,15 +1,14 @@
 import { CalendarOutline, UserAddOutline } from 'antd-mobile-icons';
 import { Card, Tag, Toast } from 'antd-mobile';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
 import { ClientCard } from '../../components/ClientCard';
 import { LoadingState } from '../../components/LoadingState';
 import { QuickActionButton } from '../../components/QuickActionButton';
-import {
-  getDashboardSummary,
-  getRecentClients,
-  getTodayAppointments,
-} from '../../services/mockData';
+import { useAppointments } from '../../hooks/useAppointments';
+import { useAuth } from '../../hooks/useAuth';
+import { useClients } from '../../hooks/useClients';
+import { isAppointmentOnDay } from '../../services/appointmentsService';
 
 function showSoonFeedback(action: string) {
   void Toast.show({
@@ -41,23 +40,44 @@ function statusColor(status: string) {
   return 'default';
 }
 
+function todayKey() {
+  const today = new Date();
+  const pad = (value: number) => `${value}`.padStart(2, '0');
+
+  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+}
+
 export function HomeScreen() {
-  const [loading, setLoading] = useState(true);
+  const { session } = useAuth();
+  const { clients, loading: clientsLoading } = useClients(session?.businessId ?? null, session?.id ?? null);
+  const { appointments, loading: appointmentsLoading } = useAppointments(
+    session?.businessId ?? null,
+    session?.id ?? null,
+  );
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setLoading(false);
-    }, 450);
+  const summary = useMemo(() => {
+    const todayAppointments = appointments.filter((appointment) => isAppointmentOnDay(appointment.date));
+    const upcomingAppointments = appointments.filter(
+      (appointment) => appointment.date > todayKey(),
+    );
 
-    return () => window.clearTimeout(timer);
-  }, []);
+    return {
+      todayAppointments: todayAppointments.length,
+      nextAppointments: upcomingAppointments.length,
+      pendingFollowUps: appointments.filter(
+        (appointment) => appointment.status === 'agendado' || appointment.status === 'confirmado',
+      ).length,
+    };
+  }, [appointments]);
 
-  const summary = useMemo(() => getDashboardSummary(), []);
-  const todayAppointments = useMemo(() => getTodayAppointments(), []);
-  const recentClients = useMemo(() => getRecentClients(), []);
-  const nextAppointment = todayAppointments[0];
+  const todayAppointments = useMemo(
+    () => appointments.filter((appointment) => isAppointmentOnDay(appointment.date)),
+    [appointments],
+  );
+  const recentClients = useMemo(() => clients.slice(0, 2), [clients]);
+  const nextAppointment = useMemo(() => todayAppointments[0] || appointments[0] || null, [appointments, todayAppointments]);
 
-  if (loading) {
+  if (appointmentsLoading || clientsLoading) {
     return <LoadingState lines={3} />;
   }
 
@@ -65,8 +85,8 @@ export function HomeScreen() {
     <div className="screen-stack">
       <Card className="soft-card hero-meeting-card">
         <div className="hero-meeting-card__top">
-          <div className="hero-meeting-card__welcome">
-            <div className="hero-meeting-card__avatar">J</div>
+              <div className="hero-meeting-card__welcome">
+            <div className="hero-meeting-card__avatar">MC</div>
             <div>
               <div className="hero-meeting-card__eyebrow">Bem-vindo de volta 👋</div>
               <div className="hero-meeting-card__text">Vamos fazer de hoje um dia produtivo.</div>
@@ -83,18 +103,22 @@ export function HomeScreen() {
         </div>
 
         <div className="hero-meeting-card__month-row">
-          <div>
-            <div className="hero-meeting-card__month">Março</div>
-            <div className="hero-meeting-card__subline">3 atendimentos hoje</div>
+            <div>
+            <div className="hero-meeting-card__month">
+              {new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(new Date())}
+            </div>
+            <div className="hero-meeting-card__subline">
+              {summary.todayAppointments} atendimento{summary.todayAppointments === 1 ? '' : 's'} hoje
+            </div>
           </div>
-          <Tag color="warning" fill="outline">
-            Modo demonstração
+          <Tag color="success" fill="outline">
+            Dados reais
           </Tag>
         </div>
 
         <div className="hero-meeting-card__calendar" aria-hidden="true">
           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day, index) => {
-            const active = index === 4;
+            const active = index === new Date().getDay();
             const dayNumber = [12, 13, 14, 15, 16, 17, 18][index];
 
             return (
@@ -168,7 +192,9 @@ export function HomeScreen() {
           </div>
         </div>
         <div className="screen-stack">
-          {recentClients.map((client) => (
+          {recentClients.length === 0 ? (
+            <p className="muted-text">Nenhum cliente cadastrado ainda.</p>
+          ) : recentClients.map((client) => (
             <ClientCard key={client.id} client={client} />
           ))}
         </div>

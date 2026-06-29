@@ -5,12 +5,212 @@ import {
   EditSOutline,
   MessageOutline,
 } from 'antd-mobile-icons';
-import { Button, Card, List, Toast } from 'antd-mobile';
+import {
+  Button,
+  Card,
+  DatePicker,
+  Form,
+  Input,
+  List,
+  Popup,
+  Selector,
+  Space,
+  Toast,
+  TextArea,
+} from 'antd-mobile';
+import { useMemo, useState } from 'react';
 import { AttendanceCard } from '../../components/AttendanceCard';
+import { AttachmentsPanel } from '../../components/AttachmentsPanel';
 import { EmptyState } from '../../components/EmptyState';
-import { mockAttendances } from '../../services/mockData';
+import { LoadingState } from '../../components/LoadingState';
+import { useAttendances } from '../../hooks/useAttendances';
+import { useAuth } from '../../hooks/useAuth';
+import { useClients } from '../../hooks/useClients';
+import { formatAttendanceDate, isAttendanceOnDay } from '../../services/attendancesService';
+import type { Attendance, AttendanceUpsertInput } from '../../types/domain';
+
+type AttendanceFormValues = {
+  clientName: string;
+  title: string;
+  description: string;
+  nextAction?: string;
+  appointmentId?: string;
+};
+
+function pad(value: number) {
+  return `${value}`.padStart(2, '0');
+}
+
+function toDateKey(date: Date) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function parseStoredDate(value: string) {
+  const trimmed = value.trim();
+
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const brazilianMatch = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+  if (brazilianMatch) {
+    const [, day, month, year] = brazilianMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateLabel(date: Date | null) {
+  if (!date) {
+    return 'Selecionar data';
+  }
+
+  return date.toLocaleDateString('pt-BR');
+}
 
 export function AttendancesScreen() {
+  const { session } = useAuth();
+  const { clients } = useClients(session?.businessId ?? null, session?.id ?? null);
+  const { attendances, loading, error, createAttendance, updateAttendance } = useAttendances(
+    session?.businessId ?? null,
+    session?.id ?? null,
+  );
+  const [editorVisible, setEditorVisible] = useState(false);
+  const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [saving, setSaving] = useState(false);
+  const [form] = Form.useForm<AttendanceFormValues>();
+
+  const todayAttendances = useMemo(
+    () => attendances.filter((attendance) => isAttendanceOnDay(attendance.date)),
+    [attendances],
+  );
+
+  const followUps = useMemo(
+    () => attendances.filter((attendance) => Boolean(attendance.nextAction || attendance.returnDate)),
+    [attendances],
+  );
+
+  const recentClients = useMemo(() => clients.slice(0, 8), [clients]);
+  const lastAttendance = attendances[0] || null;
+
+  function resetEditorState() {
+    setSelectedClientId(null);
+    setSelectedDate(new Date());
+    form.resetFields();
+    form.setFieldsValue({
+      clientName: '',
+      title: 'Sessão realizada',
+      description: '',
+      nextAction: '',
+      appointmentId: '',
+    });
+  }
+
+  function openCreateAttendance() {
+    setEditingAttendance(null);
+    resetEditorState();
+
+    if (recentClients[0]) {
+      setSelectedClientId(recentClients[0].id);
+      form.setFieldsValue({
+        clientName: recentClients[0].name,
+      });
+    }
+
+    setEditorVisible(true);
+  }
+
+  function openEditAttendance(attendance: Attendance) {
+    setEditingAttendance(attendance);
+    setSelectedClientId(attendance.clientId);
+    setSelectedDate(parseStoredDate(attendance.date));
+    form.setFieldsValue({
+      clientName: attendance.clientName,
+      title: attendance.title,
+      description: attendance.description,
+      nextAction: attendance.nextAction ?? '',
+      appointmentId: attendance.appointmentId ?? '',
+    });
+    setEditorVisible(true);
+  }
+
+  function closeEditor() {
+    setEditorVisible(false);
+    setEditingAttendance(null);
+    resetEditorState();
+  }
+
+  function handleClientSelection(values: string[]) {
+    const nextClientId = values[0] ?? null;
+    setSelectedClientId(nextClientId);
+
+    if (!nextClientId) {
+      return;
+    }
+
+    const selectedClient = clients.find((client) => client.id === nextClientId);
+    if (selectedClient) {
+      form.setFieldsValue({ clientName: selectedClient.name });
+    }
+  }
+
+  async function handleSaveAttendance() {
+    if (!session) {
+      Toast.show({ content: 'Faça login novamente para continuar.' });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const values = await form.validateFields();
+
+      if (!selectedClientId) {
+        Toast.show({ content: 'Selecione um cliente para o atendimento.' });
+        return;
+      }
+
+      if (!selectedDate) {
+        Toast.show({ content: 'Selecione a data do atendimento.' });
+        return;
+      }
+
+      const payload: AttendanceUpsertInput = {
+        clientId: selectedClientId,
+        clientName: values.clientName.trim(),
+        appointmentId: values.appointmentId?.trim() || undefined,
+        date: toDateKey(selectedDate),
+        title: values.title.trim(),
+        description: values.description.trim(),
+        nextAction: values.nextAction?.trim() || undefined,
+      };
+
+      if (editingAttendance) {
+        await updateAttendance(editingAttendance.id, payload);
+      } else {
+        await createAttendance(payload, session.id);
+      }
+
+      Toast.show({
+        content: editingAttendance ? 'Atendimento atualizado.' : 'Atendimento registrado.',
+      });
+      closeEditor();
+    } catch {
+      // Validation already explains what is missing.
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) {
+    return <LoadingState lines={3} />;
+  }
+
   return (
     <div className="screen-stack">
       <Card className="soft-card hero-meeting-card hero-meeting-card--attendance">
@@ -19,31 +219,27 @@ export function AttendancesScreen() {
             <div className="section-label">Atendimento rápido</div>
             <div className="section-title">Registrar o que foi feito hoje</div>
           </div>
+          <Button color="primary" fill="solid" size="small" shape="rounded" onClick={openCreateAttendance}>
+            <ChatAddOutline />
+            Registrar
+          </Button>
         </div>
         <div className="mini-summary-grid">
           <div>
-            <strong>{mockAttendances.length}</strong>
+            <strong>{attendances.length}</strong>
             <span>Registros</span>
           </div>
           <div>
-            <strong>Hoje</strong>
-            <span>Modelo atual</span>
+            <strong>{todayAttendances.length}</strong>
+            <span>Hoje</span>
           </div>
           <div>
-            <strong>+ Retorno</strong>
+            <strong>{followUps.length}</strong>
             <span>Próxima ação</span>
           </div>
         </div>
         <div className="quick-actions-grid" style={{ marginTop: 16 }}>
-          <Button
-            block
-            color="primary"
-            fill="solid"
-            shape="rounded"
-            onClick={() => {
-              Toast.show({ content: 'Fluxo de atendimento será integrado depois.' });
-            }}
-          >
+          <Button block color="primary" fill="solid" shape="rounded" onClick={openCreateAttendance}>
             <ChatAddOutline />
             Registrar atendimento
           </Button>
@@ -62,39 +258,35 @@ export function AttendancesScreen() {
         </div>
       </Card>
 
+      {error ? <EmptyState title="Erro ao carregar atendimentos" description={error} /> : null}
+
       <Card className="soft-card">
         <div className="section-head">
           <div>
             <div className="section-label">Últimos registros</div>
             <div className="section-title">Histórico recente</div>
           </div>
-          <Button
-            size="small"
-            color="primary"
-            fill="solid"
-            shape="rounded"
-            onClick={() => {
-              Toast.show({ content: 'Novo atendimento será aberto depois.' });
-            }}
-          >
+          <Button size="small" color="primary" fill="solid" shape="rounded" onClick={openCreateAttendance}>
             <AddOutline />
             Novo
           </Button>
         </div>
 
-        {mockAttendances.length === 0 ? (
+        {!error && attendances.length === 0 ? (
           <EmptyState
             title="Nenhum atendimento salvo"
             description="Registros de atendimento aparecem aqui em cards simples."
             actionLabel="Registrar atendimento"
-            onAction={() => {
-              Toast.show({ content: 'Fluxo de atendimento será integrado depois.' });
-            }}
+            onAction={openCreateAttendance}
           />
         ) : (
           <div className="screen-stack">
-            {mockAttendances.map((attendance) => (
-              <AttendanceCard key={attendance.id} attendance={attendance} />
+            {attendances.map((attendance) => (
+              <AttendanceCard
+                key={attendance.id}
+                attendance={attendance}
+                onClick={() => openEditAttendance(attendance)}
+              />
             ))}
           </div>
         )}
@@ -108,13 +300,21 @@ export function AttendancesScreen() {
           </div>
         </div>
         <List className="compact-list">
-          <List.Item onClick={() => Toast.show({ content: 'Abrir cliente será integrado depois.' })}>
+          <List.Item
+            onClick={() => {
+              Toast.show({ content: 'Abrir histórico do cliente será integrado depois.' });
+            }}
+          >
             <span className="more-list__item">
               <MessageOutline />
               <span>Abrir histórico do cliente</span>
             </span>
           </List.Item>
-          <List.Item onClick={() => Toast.show({ content: 'Editar modelo será integrado depois.' })}>
+          <List.Item
+            onClick={() => {
+              Toast.show({ content: 'Editar modelo será integrado depois.' });
+            }}
+          >
             <span className="more-list__item">
               <EditSOutline />
               <span>Editar modelo rápido</span>
@@ -134,6 +334,125 @@ export function AttendancesScreen() {
       >
         Criar modelo rápido
       </Button>
+
+      <Popup
+        visible={editorVisible}
+        position="bottom"
+        onMaskClick={closeEditor}
+        bodyStyle={{ borderTopLeftRadius: 28, borderTopRightRadius: 28, minHeight: '84vh' }}
+      >
+        <div className="appointment-form-sheet">
+          <div className="section-head">
+            <div>
+              <div className="section-label">{editingAttendance ? 'Editar atendimento' : 'Novo atendimento'}</div>
+              <div className="section-title">
+                {editingAttendance ? editingAttendance.clientName : 'Registro rápido e simples'}
+              </div>
+            </div>
+          </div>
+
+          <div className="appointment-form-group">
+            <div className="appointment-form-group__label">Cliente</div>
+            {recentClients.length === 0 ? (
+              <p className="muted-text">Nenhum cliente cadastrado ainda.</p>
+            ) : (
+              <Selector
+                value={selectedClientId ? [selectedClientId] : []}
+                options={recentClients.map((client) => ({
+                  value: client.id,
+                  label: (
+                    <div className="appointment-selector__item">
+                      <strong>{client.name}</strong>
+                      <span>{client.phone}</span>
+                    </div>
+                  ),
+                }))}
+                columns={1}
+                onChange={handleClientSelection}
+              />
+            )}
+          </div>
+
+          <Form form={form} layout="vertical" className="appointment-form">
+            <Form.Item
+              name="clientName"
+              label="Nome do cliente"
+              rules={[{ required: true, message: 'Informe o nome do cliente.' }]}
+            >
+              <Input placeholder="Nome completo" clearable />
+            </Form.Item>
+
+            <Form.Item
+              name="title"
+              label="Título"
+              rules={[{ required: true, message: 'Informe o título.' }]}
+            >
+              <Input placeholder="Ex.: Sessão realizada" clearable />
+            </Form.Item>
+
+            <div className="appointment-form-group">
+              <div className="appointment-form-group__label">Data</div>
+              <DatePicker
+                value={selectedDate}
+                onConfirm={(nextDate) => setSelectedDate(nextDate)}
+                title="Selecionar data"
+                confirmText="Selecionar"
+                cancelText="Cancelar"
+              >
+                {(_, actions) => (
+                  <Button block shape="rounded" fill="outline" onClick={actions.open}>
+                    {formatDateLabel(selectedDate)}
+                  </Button>
+                )}
+              </DatePicker>
+            </div>
+
+            <Form.Item name="appointmentId" label="Agendamento vinculado">
+              <Input placeholder="ID do agendamento (opcional)" clearable />
+            </Form.Item>
+
+            <Form.Item
+              name="description"
+              label="Descrição"
+              rules={[{ required: true, message: 'Descreva o atendimento.' }]}
+            >
+              <TextArea rows={4} placeholder="Resumo curto do que foi feito" />
+            </Form.Item>
+
+            <Form.Item name="nextAction" label="Próxima ação">
+              <Input placeholder="Ex.: retorno em 15 dias" clearable />
+            </Form.Item>
+          </Form>
+
+          <AttachmentsPanel
+            title="Anexos do atendimento"
+            description="Arquivos ligados ao atendimento ou ao cliente selecionado."
+            businessId={session?.businessId ?? null}
+            ownerId={session?.id ?? null}
+            clientId={selectedClientId}
+            attendanceId={editingAttendance?.id ?? null}
+            emptyTitle="Nenhum anexo neste atendimento"
+            emptyDescription="Anexe imagens ou documentos para manter o registro completo."
+          />
+
+          <Space direction="vertical" block>
+            <Button
+              color="primary"
+              fill="solid"
+              block
+              size="large"
+              shape="rounded"
+              loading={saving}
+              onClick={handleSaveAttendance}
+            >
+              {editingAttendance ? 'Salvar alterações' : 'Registrar atendimento'}
+            </Button>
+            <Button block size="large" shape="rounded" onClick={closeEditor}>
+              Cancelar
+            </Button>
+          </Space>
+        </div>
+      </Popup>
     </div>
   );
 }

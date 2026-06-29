@@ -638,6 +638,129 @@ button {
   color: var(--mc-text-soft);
 }
 
+.client-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.client-profile-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(234, 231, 226, 0.8);
+}
+
+.client-profile-grid strong {
+  font-size: 16px;
+  line-height: 1.15;
+}
+
+.client-profile-grid span {
+  font-size: 12px;
+  color: var(--mc-text-soft);
+}
+
+.attachments-card {
+  background: #fffef9;
+}
+
+.attachment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 20px;
+  border: 1px solid var(--mc-border);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 20px rgba(17, 17, 17, 0.05);
+  color: var(--mc-text);
+  text-align: left;
+}
+
+.attachment-item__icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(235, 90, 60, 0.12);
+  color: var(--mc-primary-dark);
+  flex: none;
+}
+
+.attachment-item__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.attachment-item__copy strong,
+.attachment-item__copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-item__copy strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.attachment-item__copy span {
+  font-size: 12px;
+  color: var(--mc-text-soft);
+  line-height: 1.25;
+}
+
+.more-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+
+.more-meta-grid > div,
+.permission-list > div {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(234, 231, 226, 0.9);
+}
+
+.more-meta-grid strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.more-meta-grid span,
+.permission-list span {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--mc-text-soft);
+}
+
+.permission-list {
+  display: grid;
+  gap: 10px;
+}
+
+.permission-list strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
 .client-detail-actions {
   margin-top: 16px;
 }
@@ -647,6 +770,14 @@ button {
   gap: 16px;
   padding: 18px 16px 20px;
   min-height: 78vh;
+  background: var(--mc-bg);
+}
+
+.appointment-form-sheet {
+  display: grid;
+  gap: 16px;
+  padding: 18px 16px 20px;
+  min-height: 84vh;
   background: var(--mc-bg);
 }
 
@@ -670,6 +801,53 @@ button {
 
 .client-form-sheet .adm-form-item-label {
   font-weight: 600;
+}
+
+.appointment-form-sheet .adm-form {
+  --border-inner: none;
+}
+
+.appointment-form-sheet .adm-form-item {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--mc-border);
+  border-radius: 18px;
+  padding: 6px 12px;
+}
+
+.appointment-form-sheet .adm-form-item-label {
+  font-weight: 600;
+}
+
+.appointment-form {
+  display: grid;
+  gap: 12px;
+}
+
+.appointment-form-group {
+  display: grid;
+  gap: 10px;
+}
+
+.appointment-form-group__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mc-text-soft);
+}
+
+.appointment-selector__item {
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.appointment-selector__item strong {
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.appointment-selector__item span {
+  font-size: 12px;
+  color: var(--mc-text-soft);
 }
 
 .appointment-card--emphasis {
