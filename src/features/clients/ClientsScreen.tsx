@@ -1,4 +1,4 @@
-import { AddOutline, CalendarOutline, ClockCircleOutline, RightOutline, UserAddOutline } from 'antd-mobile-icons';
+import { AddOutline, CalendarOutline, ClockCircleOutline, RightOutline, UserAddOutline, UserOutline } from 'antd-mobile-icons';
 import {
   Avatar,
   Button,
@@ -185,7 +185,7 @@ export function ClientsScreen() {
     });
   }, [allClients, query, status]);
 
-  const selectedClient = clients.find((client) => client.id === selectedClientId) ?? clients[0] ?? null;
+  const selectedClient = allClients.find((client) => client.id === selectedClientId) ?? null;
   const selectedClientAppointments = useMemo(() => {
     if (!selectedClient) {
       return [];
@@ -256,15 +256,14 @@ export function ClientsScreen() {
   }, [selectedClient, selectedClientAppointments, selectedClientAttendances]);
 
   useEffect(() => {
-    if (clients.length === 0) {
-      setSelectedClientId(null);
+    if (!selectedClientId) {
       return;
     }
 
-    if (!selectedClientId || !clients.some((client) => client.id === selectedClientId)) {
-      setSelectedClientId(clients[0].id);
+    if (!allClients.some((client) => client.id === selectedClientId)) {
+      setSelectedClientId(null);
     }
-  }, [clients, selectedClientId]);
+  }, [allClients, selectedClientId]);
 
   function openCreateClient() {
     setEditingClient(null);
@@ -367,137 +366,6 @@ export function ClientsScreen() {
 
       {error ? <EmptyState title="Erro ao carregar clientes" description={error} /> : null}
 
-      {selectedClient ? (
-        <div className="screen-stack">
-          <Card className="soft-card highlight-card highlight-card--yellow">
-            <div className="section-head">
-              <div>
-                <div className="section-label">Perfil completo</div>
-                <div className="section-title">{selectedClient.name}</div>
-              </div>
-            </div>
-
-            <div className="client-profile-grid">
-              <div>
-                <strong>{selectedClientAppointments.length}</strong>
-                <span>Agendamentos</span>
-              </div>
-              <div>
-                <strong>{selectedClientAttendances.length}</strong>
-                <span>Atendimentos</span>
-              </div>
-              <div>
-                <strong>{lastClientAttendance ? formatAttendanceDate(lastClientAttendance.date) : '--'}</strong>
-                <span>Último atendimento</span>
-              </div>
-              <div>
-                <strong>{nextClientAppointment ? formatAppointmentDate(nextClientAppointment.date) : '--'}</strong>
-                <span>Próximo agendamento</span>
-              </div>
-            </div>
-
-            <div className="client-card__meta">
-              <span>{selectedClient.phone}</span>
-              <span>{selectedClient.email ?? 'Sem e-mail cadastrado'}</span>
-              {selectedClient.notes ? <span>{selectedClient.notes}</span> : null}
-            </div>
-
-            <div className="quick-actions-grid client-detail-actions">
-              <QuickActionButton
-                label="Agendar"
-                hint="Abrir agenda"
-                onClick={() => goToRoute('agenda')}
-                tone="primary"
-                icon={<CalendarOutline />}
-              />
-              <QuickActionButton
-                label="Atendimento"
-                hint="Registrar agora"
-                onClick={() => goToRoute('atendimentos')}
-                icon={<ClockCircleOutline />}
-              />
-            </div>
-
-            <Button block shape="rounded" style={{ marginTop: 12 }} onClick={() => openEditClient(selectedClient)}>
-              Editar cliente
-            </Button>
-          </Card>
-
-          <Card className="soft-card">
-            <div className="section-head">
-              <div>
-                <div className="section-label">Próximo agendamento</div>
-                <div className="section-title">Último horário futuro</div>
-              </div>
-            </div>
-            {nextClientAppointment ? (
-              <AppointmentCard appointment={nextClientAppointment} emphasis />
-            ) : (
-              <EmptyState
-                title="Sem próximo agendamento"
-                description="Abra a agenda para criar um horário para esse cliente."
-                actionLabel="Abrir agenda"
-                onAction={() => goToRoute('agenda')}
-              />
-            )}
-          </Card>
-
-          <Card className="soft-card">
-            <div className="section-head">
-              <div>
-                <div className="section-label">Último atendimento</div>
-                <div className="section-title">Resumo mais recente</div>
-              </div>
-            </div>
-            {lastClientAttendance ? (
-              <AttendanceCard attendance={lastClientAttendance} />
-            ) : (
-              <EmptyState
-                title="Sem atendimento salvo"
-                description="Registre um atendimento para completar o histórico do cliente."
-                actionLabel="Registrar atendimento"
-                onAction={() => goToRoute('atendimentos')}
-              />
-            )}
-          </Card>
-
-          <Card className="soft-card">
-            <div className="section-head">
-              <div>
-                <div className="section-label">Histórico completo</div>
-                <div className="section-title">Agendamentos e atendimentos</div>
-              </div>
-            </div>
-            {recentClientHistory.length === 0 ? (
-              <EmptyState
-                title="Nenhum histórico ainda"
-                description="Quando houver agenda ou atendimento, o histórico aparece aqui."
-              />
-            ) : (
-              <div className="screen-stack">
-                {recentClientHistory.map((entry) =>
-                  entry.kind === 'appointment' ? (
-                    <AppointmentCard key={entry.key} appointment={entry.record} />
-                  ) : (
-                    <AttendanceCard key={entry.key} attendance={entry.record} />
-                  ),
-                )}
-              </div>
-            )}
-          </Card>
-
-          <AttachmentsPanel
-            title="Anexos do cliente"
-            description="Documentos, imagens e comprovantes vinculados ao cadastro."
-            businessId={session?.businessId ?? null}
-            ownerId={session?.id ?? null}
-            clientId={selectedClient.id}
-            emptyTitle="Nenhum anexo neste cliente"
-            emptyDescription="Envie arquivos para manter tudo junto do cadastro."
-          />
-        </div>
-      ) : null}
-
       <Card className="soft-card">
         <div className="section-head">
           <div>
@@ -523,7 +391,7 @@ export function ClientsScreen() {
               <List.Item
                 key={client.id}
                 className={client.id === selectedClient?.id ? 'client-list__item client-list__item--selected' : 'client-list__item'}
-                prefix={<Avatar className="client-list__avatar" src="" fallback={client.name.charAt(0)} />}
+                prefix={<Avatar className="client-list__avatar" src="" fallback={<UserOutline />} />}
                 extra={<RightOutline />}
                 onClick={() => setSelectedClientId(client.id)}
               >
@@ -551,6 +419,147 @@ export function ClientsScreen() {
           Novo cliente
         </Button>
       </Space>
+
+      <Popup
+        visible={Boolean(selectedClient)}
+        position="bottom"
+        onMaskClick={() => setSelectedClientId(null)}
+        bodyStyle={{ borderTopLeftRadius: 28, borderTopRightRadius: 28, minHeight: '84vh' }}
+      >
+        {selectedClient ? (
+          <div className="client-detail-sheet">
+            <Card className="soft-card highlight-card highlight-card--yellow">
+              <div className="section-head">
+                <div>
+                  <div className="section-label">Perfil completo</div>
+                  <div className="section-title">{selectedClient.name}</div>
+                </div>
+                <Button size="small" shape="rounded" onClick={() => setSelectedClientId(null)}>
+                  Fechar
+                </Button>
+              </div>
+
+              <div className="client-profile-grid">
+                <div>
+                  <strong>{selectedClientAppointments.length}</strong>
+                  <span>Agendamentos</span>
+                </div>
+                <div>
+                  <strong>{selectedClientAttendances.length}</strong>
+                  <span>Atendimentos</span>
+                </div>
+                <div>
+                  <strong>{lastClientAttendance ? formatAttendanceDate(lastClientAttendance.date) : '--'}</strong>
+                  <span>Último atendimento</span>
+                </div>
+                <div>
+                  <strong>{nextClientAppointment ? formatAppointmentDate(nextClientAppointment.date) : '--'}</strong>
+                  <span>Próximo agendamento</span>
+                </div>
+              </div>
+
+              <div className="client-card__meta">
+                <span>{selectedClient.phone}</span>
+                <span>{selectedClient.email ?? 'Sem e-mail cadastrado'}</span>
+                {selectedClient.notes ? <span>{selectedClient.notes}</span> : null}
+              </div>
+
+              <div className="quick-actions-grid client-detail-actions">
+                <QuickActionButton
+                  label="Agendar"
+                  hint="Abrir agenda"
+                  onClick={() => goToRoute('agenda')}
+                  tone="primary"
+                  icon={<CalendarOutline />}
+                />
+                <QuickActionButton
+                  label="Atendimento"
+                  hint="Registrar agora"
+                  onClick={() => goToRoute('atendimentos')}
+                  icon={<ClockCircleOutline />}
+                />
+              </div>
+
+              <Button block shape="rounded" style={{ marginTop: 12 }} onClick={() => openEditClient(selectedClient)}>
+                Editar cliente
+              </Button>
+            </Card>
+
+            <Card className="soft-card">
+              <div className="section-head">
+                <div>
+                  <div className="section-label">Próximo agendamento</div>
+                  <div className="section-title">Último horário futuro</div>
+                </div>
+              </div>
+              {nextClientAppointment ? (
+                <AppointmentCard appointment={nextClientAppointment} emphasis />
+              ) : (
+                <EmptyState
+                  title="Sem próximo agendamento"
+                  description="Abra a agenda para criar um horário para esse cliente."
+                  actionLabel="Abrir agenda"
+                  onAction={() => goToRoute('agenda')}
+                />
+              )}
+            </Card>
+
+            <Card className="soft-card">
+              <div className="section-head">
+                <div>
+                  <div className="section-label">Último atendimento</div>
+                  <div className="section-title">Resumo mais recente</div>
+                </div>
+              </div>
+              {lastClientAttendance ? (
+                <AttendanceCard attendance={lastClientAttendance} />
+              ) : (
+                <EmptyState
+                  title="Sem atendimento salvo"
+                  description="Registre um atendimento para completar o histórico do cliente."
+                  actionLabel="Registrar atendimento"
+                  onAction={() => goToRoute('atendimentos')}
+                />
+              )}
+            </Card>
+
+            <Card className="soft-card">
+              <div className="section-head">
+                <div>
+                  <div className="section-label">Histórico completo</div>
+                  <div className="section-title">Agendamentos e atendimentos</div>
+                </div>
+              </div>
+              {recentClientHistory.length === 0 ? (
+                <EmptyState
+                  title="Nenhum histórico ainda"
+                  description="Quando houver agenda ou atendimento, o histórico aparece aqui."
+                />
+              ) : (
+                <div className="screen-stack">
+                  {recentClientHistory.map((entry) =>
+                    entry.kind === 'appointment' ? (
+                      <AppointmentCard key={entry.key} appointment={entry.record} />
+                    ) : (
+                      <AttendanceCard key={entry.key} attendance={entry.record} />
+                    ),
+                  )}
+                </div>
+              )}
+            </Card>
+
+            <AttachmentsPanel
+              title="Anexos do cliente"
+              description="Documentos, imagens e comprovantes vinculados ao cadastro."
+              businessId={session?.businessId ?? null}
+              ownerId={session?.id ?? null}
+              clientId={selectedClient.id}
+              emptyTitle="Nenhum anexo neste cliente"
+              emptyDescription="Envie arquivos para manter tudo junto do cadastro."
+            />
+          </div>
+        ) : null}
+      </Popup>
 
       <Popup
         visible={editorVisible}
