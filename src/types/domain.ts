@@ -17,7 +17,7 @@ export interface ClientUpsertInput {
 }
 
 export interface AppointmentUpsertInput {
-  clientId?: string;
+  clientId: string;
   clientName: string;
   date: string;
   time: string;

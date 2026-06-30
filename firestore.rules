@@ -16,6 +16,34 @@ service cloud.firestore {
         : uid;
     }
 
+    function validString(field, minSize) {
+      return field is string && field.size() >= minSize;
+    }
+
+    function belongsToCurrentBusiness(data) {
+      return signedIn()
+        && (
+          data.businessId == currentBusinessId(request.auth.uid)
+          || data.businessId == request.auth.uid
+        );
+    }
+
+    function scopeNotChanged() {
+      return request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.businessId == resource.data.businessId;
+    }
+
+    function validAppointmentData() {
+      return validString(request.resource.data.businessId, 1)
+        && validString(request.resource.data.ownerId, 1)
+        && validString(request.resource.data.clientId, 1)
+        && validString(request.resource.data.clientName, 1)
+        && validString(request.resource.data.date, 10)
+        && validString(request.resource.data.time, 5)
+        && validString(request.resource.data.serviceType, 1)
+        && request.resource.data.status in ['agendado', 'confirmado', 'atendido', 'cancelado', 'faltou'];
+    }
+
     match /users/{userId} {
       allow read, create, update, delete: if isOwner(userId);
     }
@@ -28,61 +56,39 @@ service cloud.firestore {
     match /clients/{clientId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && (
-          request.resource.data.businessId == currentBusinessId(request.auth.uid)
-          || request.resource.data.businessId == request.auth.uid
-        );
-      allow read, update, delete: if signedIn()
-        && resource.data.ownerId == request.auth.uid
-        && (
-          resource.data.businessId == currentBusinessId(request.auth.uid)
-          || resource.data.businessId == request.auth.uid
-        );
+        && belongsToCurrentBusiness(request.resource.data);
+      allow read, delete: if belongsToCurrentBusiness(resource.data);
+      allow update: if belongsToCurrentBusiness(resource.data)
+        && scopeNotChanged();
     }
 
     match /appointments/{appointmentId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && (
-          request.resource.data.businessId == currentBusinessId(request.auth.uid)
-          || request.resource.data.businessId == request.auth.uid
-        );
-      allow read, update, delete: if signedIn()
-        && resource.data.ownerId == request.auth.uid
-        && (
-          resource.data.businessId == currentBusinessId(request.auth.uid)
-          || resource.data.businessId == request.auth.uid
-        );
+        && validAppointmentData()
+        && belongsToCurrentBusiness(request.resource.data);
+      allow read, delete: if belongsToCurrentBusiness(resource.data);
+      allow update: if belongsToCurrentBusiness(resource.data)
+        && scopeNotChanged()
+        && validAppointmentData();
     }
 
     match /attendances/{attendanceId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && (
-          request.resource.data.businessId == currentBusinessId(request.auth.uid)
-          || request.resource.data.businessId == request.auth.uid
-        );
-      allow read, update, delete: if signedIn()
-        && resource.data.ownerId == request.auth.uid
-        && (
-          resource.data.businessId == currentBusinessId(request.auth.uid)
-          || resource.data.businessId == request.auth.uid
-        );
+        && belongsToCurrentBusiness(request.resource.data);
+      allow read, delete: if belongsToCurrentBusiness(resource.data);
+      allow update: if belongsToCurrentBusiness(resource.data)
+        && scopeNotChanged();
     }
 
     match /attachments/{attachmentId} {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
-        && (
-          request.resource.data.businessId == currentBusinessId(request.auth.uid)
-          || request.resource.data.businessId == request.auth.uid
-        );
-      allow read, update, delete: if signedIn()
-        && resource.data.ownerId == request.auth.uid
-        && (
-          resource.data.businessId == currentBusinessId(request.auth.uid)
-          || resource.data.businessId == request.auth.uid
-        );
+        && belongsToCurrentBusiness(request.resource.data);
+      allow read, delete: if belongsToCurrentBusiness(resource.data);
+      allow update: if belongsToCurrentBusiness(resource.data)
+        && scopeNotChanged();
     }
 
     match /{document=**} {
