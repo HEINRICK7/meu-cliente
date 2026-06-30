@@ -69,6 +69,7 @@ function shortName(name: string) {
 export function AppShell({ activeRoute, onNavigate, children, session, notifications = [] }: AppShellProps) {
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const meta = pageMeta[activeRoute];
+  const showHeader = activeRoute === 'inicio';
   const userName = session?.name || 'Usuário';
   const userPhoto = session?.photoURL;
   const notificationCount = notifications.length;
@@ -77,56 +78,58 @@ export function AppShell({ activeRoute, onNavigate, children, session, notificat
   return (
     <div className="app-frame">
       <div className="app-shell">
-        <header className="app-header app-header--compact">
-          <SafeArea position="top" />
-          <div className="app-header__topbar">
-            <div className="app-header__brand">
-              <div className="app-header__brand-badge">
-                <img
-                  src="/brand/app-logo-mark.png"
-                  alt=""
-                  className="app-header__brand-image"
-                  aria-hidden="true"
-                />
+        {showHeader ? (
+          <header className="app-header app-header--compact">
+            <SafeArea position="top" />
+            <div className="app-header__topbar">
+              <div className="app-header__brand">
+                <div className="app-header__brand-badge">
+                  <img
+                    src="/brand/app-logo-mark.png"
+                    alt=""
+                    className="app-header__brand-image"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="app-header__brand-copy" aria-label="Meu Cliente">
+                  <span>MEU</span>
+                  <span>CLIENTE</span>
+                </div>
               </div>
-              <div className="app-header__brand-copy" aria-label="Meu Cliente">
-                <span>MEU</span>
-                <span>CLIENTE</span>
+              <div className="app-header__actions">
+                <Button
+                  fill="none"
+                  className="app-header__avatar-button"
+                  aria-label={`Abrir conta de ${userName}`}
+                  onClick={() => onNavigate('mais')}
+                >
+                  <Avatar
+                    className="app-user-chip__avatar"
+                    src={userPhoto || ''}
+                    fallback={shortName(userName)}
+                  />
+                </Button>
+                <Button
+                  fill="none"
+                  className="icon-chip icon-chip--light"
+                  aria-label="Abrir notificações"
+                  onClick={() => setNotificationsVisible(true)}
+                >
+                  <Badge content={notificationCount > 0 ? notificationCount : null}>
+                    <BellOutline />
+                  </Badge>
+                </Button>
               </div>
             </div>
-            <div className="app-header__actions">
-              <Button
-                fill="none"
-                className="app-header__avatar-button"
-                aria-label={`Abrir conta de ${userName}`}
-                onClick={() => onNavigate('mais')}
-              >
-                <Avatar
-                  className="app-user-chip__avatar"
-                  src={userPhoto || ''}
-                  fallback={shortName(userName)}
-                />
-              </Button>
-              <Button
-                fill="none"
-                className="icon-chip icon-chip--light"
-                aria-label="Abrir notificações"
-                onClick={() => setNotificationsVisible(true)}
-              >
-                <Badge content={notificationCount > 0 ? notificationCount : null}>
-                  <BellOutline />
-                </Badge>
-              </Button>
+
+            <div className="app-header__copy">
+              <div className="app-header__title">{meta.title}</div>
+              <div className="app-header__subtitle">{meta.subtitle}</div>
             </div>
-          </div>
+          </header>
+        ) : null}
 
-          <div className="app-header__copy">
-            <div className="app-header__title">{meta.title}</div>
-            <div className="app-header__subtitle">{meta.subtitle}</div>
-          </div>
-        </header>
-
-        <main className="app-content">{children}</main>
+        <main className={showHeader ? 'app-content' : 'app-content app-content--plain'}>{children}</main>
 
         <TabBar
           className="bottom-nav"
