@@ -47,6 +47,10 @@ function formatDateLabel(date: Date | null) {
   return date.toLocaleDateString('pt-BR');
 }
 
+function normalizeLabel(value: string) {
+  return value.trim().toLowerCase();
+}
+
 function sortBySchedule(left: Appointment, right: Appointment) {
   const leftDate = parseCalendarDate(left.date);
   const rightDate = parseCalendarDate(right.date);
@@ -70,6 +74,10 @@ function sortBySchedule(left: Appointment, right: Appointment) {
 }
 
 function getSaveErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
   if (typeof error !== 'object' || error === null) {
     return 'Não foi possível salvar o agendamento.';
   }
@@ -182,16 +190,21 @@ export function ScheduleScreen() {
   }
 
   function openEditAppointment(appointment: Appointment) {
+    const appointmentClient =
+      clients.find((client) => client.id === appointment.clientId) ??
+      clients.find((client) => normalizeLabel(client.name) === normalizeLabel(appointment.clientName)) ??
+      null;
+
     setEditingAppointment(appointment);
     form.setFieldsValue({
-      clientName: appointment.clientName,
+      clientName: appointmentClient?.name ?? appointment.clientName,
       time: appointment.time,
       serviceType: appointment.serviceType,
       notes: appointment.notes ?? '',
     });
     setSelectedDate(parseCalendarDate(appointment.date));
     setSelectedStatus(appointment.status);
-    setSelectedClientId(appointment.clientId ?? null);
+    setSelectedClientId(appointmentClient?.id ?? null);
     setEditorVisible(true);
   }
 
@@ -230,9 +243,16 @@ export function ScheduleScreen() {
         return;
       }
 
+      const selectedClient = clients.find((client) => client.id === selectedClientId);
+
+      if (!selectedClient) {
+        Toast.show({ content: 'Selecione um cliente cadastrado para o agendamento.' });
+        return;
+      }
+
       const payload: AppointmentUpsertInput = {
-        clientId: selectedClientId || undefined,
-        clientName: values.clientName.trim(),
+        clientId: selectedClient.id,
+        clientName: selectedClient.name,
         date: toDateKey(selectedDate),
         time: values.time.trim(),
         serviceType: values.serviceType.trim(),
@@ -385,7 +405,7 @@ export function ScheduleScreen() {
           <div className="appointment-form-group">
             <div className="appointment-form-group__label">Cliente recente</div>
             {recentClients.length === 0 ? (
-              <p className="muted-text">Nenhum cliente cadastrado ainda. Você pode digitar o nome abaixo.</p>
+              <p className="muted-text">Nenhum cliente cadastrado ainda. Cadastre um cliente antes de criar o agendamento.</p>
             ) : (
               <Selector
                 value={selectedClientId ? [selectedClientId] : []}

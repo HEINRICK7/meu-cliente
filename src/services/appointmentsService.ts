@@ -58,6 +58,21 @@ function normalizeAppointment(data: Record<string, unknown>, id: string): Appoin
   };
 }
 
+function normalizeRequiredAppointmentClient(input: AppointmentUpsertInput) {
+  const clientId = normalizeFirestoreId(input.clientId);
+  const clientName = input.clientName.trim();
+
+  if (!clientId) {
+    throw new Error('Selecione um cliente válido para salvar o agendamento.');
+  }
+
+  if (!clientName) {
+    throw new Error('Informe o nome do cliente para salvar o agendamento.');
+  }
+
+  return { clientId, clientName };
+}
+
 export function formatAppointmentDate(value: string) {
   return formatCalendarDate(value);
 }
@@ -140,13 +155,15 @@ export async function createAppointmentRecord(params: {
   if (!businessId || !ownerId) {
     throw new Error('Dados de negócio inválidos para salvar o agendamento.');
   }
+
+  const appointmentClient = normalizeRequiredAppointmentClient(params.input);
   const docRef = await runFirestoreOperation(
     withTimeout(
       addDoc(collection(db, APPOINTMENTS_COLLECTION), {
         businessId,
         ownerId,
-        clientId: params.input.clientId || '',
-        clientName: params.input.clientName,
+        clientId: appointmentClient.clientId,
+        clientName: appointmentClient.clientName,
         date: params.input.date,
         time: params.input.time,
         serviceType: params.input.serviceType,
@@ -164,8 +181,8 @@ export async function createAppointmentRecord(params: {
     {
       businessId,
       ownerId,
-      clientId: params.input.clientId || '',
-      clientName: params.input.clientName,
+      clientId: appointmentClient.clientId,
+      clientName: appointmentClient.clientName,
       date: params.input.date,
       time: params.input.time,
       serviceType: params.input.serviceType,
@@ -188,12 +205,13 @@ export async function updateAppointmentRecord(params: {
 
   const timestamp = nowIso();
   const appointmentRef = doc(db, APPOINTMENTS_COLLECTION, params.appointmentId);
+  const appointmentClient = normalizeRequiredAppointmentClient(params.input);
 
   await runFirestoreOperation(
     withTimeout(
       updateDoc(appointmentRef, {
-        clientId: params.input.clientId || '',
-        clientName: params.input.clientName,
+        clientId: appointmentClient.clientId,
+        clientName: appointmentClient.clientName,
         date: params.input.date,
         time: params.input.time,
         serviceType: params.input.serviceType,
