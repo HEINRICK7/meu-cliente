@@ -1,5 +1,5 @@
 import { CalendarOutline, MessageOutline, UserAddOutline } from 'antd-mobile-icons';
-import { Button, Card, Empty, Grid, Selector, Tag } from 'antd-mobile';
+import { Button, Card, Empty, Grid, Tag } from 'antd-mobile';
 import { useEffect, useMemo, useState } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
 import { ClientCard } from '../../components/ClientCard';
@@ -96,7 +96,6 @@ export function HomeScreen() {
     () => selectedDayAppointments.find((appointment) => appointment.id === selectedAppointmentId) || selectedDayAppointments[0] || null,
     [selectedAppointmentId, selectedDayAppointments],
   );
-  const selectedDayKey = toDateKey(selectedDay);
 
   useEffect(() => {
     if (selectedDayAppointments.length === 0) {
@@ -164,28 +163,25 @@ export function HomeScreen() {
           </Button>
         </div>
 
-        <Selector
-          className="hero-day-row"
-          value={[selectedDayKey]}
-          columns={7}
-          options={weekDays.map((date) => ({
-            value: toDateKey(date),
-            label: (
-              <span className="hero-day-chip">
-                <span>{date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
-                <strong>{date.getDate()}</strong>
-              </span>
-            ),
-          }))}
-          onChange={(values) => {
-            const nextDateKey = values[0];
-            const nextDate = weekDays.find((date) => toDateKey(date) === nextDateKey);
+        <Grid columns={7} gap={8} className="hero-day-row">
+          {weekDays.map((date) => {
+            const isActive = toDateKey(date) === toDateKey(selectedDay);
 
-            if (nextDate) {
-              setSelectedDay(nextDate);
-            }
-          }}
-        />
+            return (
+              <Grid.Item key={toDateKey(date)}>
+                <Button
+                  block
+                  fill="none"
+                  className={isActive ? 'hero-day-chip hero-day-chip--active' : 'hero-day-chip'}
+                  onClick={() => setSelectedDay(date)}
+                >
+                  <span>{date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
+                  <strong>{date.getDate()}</strong>
+                </Button>
+              </Grid.Item>
+            );
+          })}
+        </Grid>
 
         <Grid columns={3} gap={8} className="hero-today-grid">
           <Button fill="none" className="hero-today-card" onClick={() => goToRoute('agenda')}>
