@@ -225,11 +225,11 @@ export function AttendancesScreen() {
           </div>
         </div>
           <div className="quick-actions-grid" style={{ marginTop: 16 }}>
-          <Button block color="primary" fill="solid" shape="rounded" onClick={openCreateAttendance}>
+          <Button color="primary" fill="solid" shape="rounded" onClick={openCreateAttendance}>
             <ChatAddOutline />
             Registrar atendimento
           </Button>
-          <Button block color="primary" fill="outline" shape="rounded" onClick={openQuickTemplate}>
+          <Button color="primary" fill="outline" shape="rounded" onClick={openQuickTemplate}>
             <ClockCircleOutline />
             Modelo rápido
           </Button>
@@ -298,7 +298,6 @@ export function AttendancesScreen() {
       </Card>
 
       <Button
-        block
         color="primary"
         fill="outline"
         shape="rounded"
@@ -364,7 +363,7 @@ export function AttendancesScreen() {
                 cancelText="Cancelar"
               >
                 {(_, actions) => (
-                  <Button block shape="rounded" fill="outline" onClick={actions.open}>
+                  <Button shape="rounded" fill="outline" onClick={actions.open}>
                     {formatDateLabel(selectedDate)}
                   </Button>
                 )}
@@ -421,11 +420,10 @@ export function AttendancesScreen() {
             emptyDescription="Anexe imagens ou documentos para manter o registro completo."
           />
 
-          <Space direction="vertical" block>
+          <Space wrap className="form-action-row">
             <Button
               color="primary"
               fill="solid"
-              block
               size="large"
               shape="rounded"
               loading={saving}
@@ -433,7 +431,7 @@ export function AttendancesScreen() {
             >
               {editingAttendance ? 'Salvar alterações' : 'Registrar atendimento'}
             </Button>
-            <Button block size="large" shape="rounded" onClick={closeEditor}>
+            <Button size="large" shape="rounded" onClick={closeEditor}>
               Cancelar
             </Button>
           </Space>

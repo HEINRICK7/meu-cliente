@@ -1,10 +1,10 @@
 import {
-  CalendarOutline,
+  AppOutline,
   BellOutline,
+  ClockCircleOutline,
   MoreOutline,
-  UnorderedListOutline,
+  CalendarOutline,
   UserOutline,
-  AddCircleOutline,
 } from 'antd-mobile-icons';
 import { Avatar, Badge, Button, Empty, List, Popup, SafeArea, TabBar } from 'antd-mobile';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -26,10 +26,10 @@ type AppShellProps = {
   notifications?: ShellNotification[];
 };
 
-const navItems: Array<{ route: AppRoute; label: string; icon: ReactNode }> = [
-  { route: 'inicio', label: 'Início', icon: <CalendarOutline /> },
-  { route: 'agenda', label: 'Agenda', icon: <UnorderedListOutline /> },
-  { route: 'atendimentos', label: 'Atender', icon: <AddCircleOutline /> },
+const navItems: Array<{ route: AppRoute; label: string; icon: ReactNode; badgeRoute?: AppRoute }> = [
+  { route: 'inicio', label: 'Início', icon: <AppOutline /> },
+  { route: 'agenda', label: 'Agenda', icon: <CalendarOutline />, badgeRoute: 'agenda' },
+  { route: 'atendimentos', label: 'Atender', icon: <ClockCircleOutline />, badgeRoute: 'atendimentos' },
   { route: 'clientes', label: 'Clientes', icon: <UserOutline /> },
   { route: 'mais', label: 'Mais', icon: <MoreOutline /> },
 ];
@@ -74,6 +74,24 @@ export function AppShell({ activeRoute, onNavigate, children, session, notificat
   const userPhoto = session?.photoURL;
   const notificationCount = notifications.length;
   const previewNotifications = useMemo(() => notifications.slice(0, 4), [notifications]);
+  const badgeByRoute = useMemo(
+    () =>
+      notifications.reduce<Partial<Record<AppRoute, number>>>((acc, notification) => {
+        acc[notification.route] = (acc[notification.route] ?? 0) + 1;
+        return acc;
+      }, {}),
+    [notifications],
+  );
+
+  function renderNavIcon(item: (typeof navItems)[number]) {
+    const badgeCount = item.badgeRoute ? badgeByRoute[item.badgeRoute] ?? 0 : 0;
+
+    return (
+      <Badge content={badgeCount > 0 ? badgeCount : null}>
+        <span className="bottom-nav__icon">{item.icon}</span>
+      </Badge>
+    );
+  }
 
   return (
     <div className="app-frame">
@@ -138,7 +156,7 @@ export function AppShell({ activeRoute, onNavigate, children, session, notificat
           safeArea
         >
           {navItems.map((item) => (
-            <TabBar.Item key={item.route} icon={item.icon} title={item.label} />
+            <TabBar.Item key={item.route} icon={renderNavIcon(item)} title={item.label} />
           ))}
         </TabBar>
         <SafeArea position="bottom" />

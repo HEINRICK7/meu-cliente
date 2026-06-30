@@ -3,6 +3,7 @@
   --mc-primary: #eb5a3c;
   --mc-primary-dark: #d94b31;
   --mc-highlight: #f8d85a;
+  --mc-accent: var(--mc-highlight);
   --mc-bg: #f5f3ef;
   --mc-surface: #ffffff;
   --mc-text: #111111;
@@ -13,6 +14,8 @@
   --mc-radius-lg: 28px;
   --mc-radius-md: 22px;
   --mc-radius-sm: 16px;
+  --mc-button-radius: 6px;
+  --mc-button-min-height: 40px;
   --adm-color-primary: var(--mc-primary);
   --adm-color-warning: var(--mc-highlight);
   --adm-color-danger: var(--mc-primary-dark);
@@ -51,6 +54,48 @@ select {
 
 button {
   cursor: pointer;
+}
+
+.adm-button {
+  --adm-button-border-radius: var(--mc-button-radius);
+  min-height: var(--mc-button-min-height);
+  font-weight: 500;
+}
+
+.adm-button.adm-button-shape-rounded {
+  --border-radius: var(--mc-button-radius);
+}
+
+.adm-button-primary {
+  --color: var(--mc-primary);
+}
+
+.adm-button-default.adm-button-fill-outline {
+  --border-color: var(--mc-border);
+  --text-color: var(--mc-text);
+  background: var(--mc-surface);
+}
+
+.adm-badge {
+  border-radius: 999px;
+}
+
+.adm-badge-content {
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.adm-badge-dot {
+  width: 10px;
+  min-width: 10px;
+  height: 10px;
+  padding: 0;
 }
 
 .app-frame {
@@ -332,6 +377,8 @@ button {
 }
 
 .icon-chip.adm-button {
+  --adm-button-border-radius: 999px;
+  --border-radius: 999px;
   --background-color: rgba(255, 255, 255, 0.18);
   --border-color: rgba(255, 255, 255, 0.14);
   --text-color: #fff;
@@ -1103,12 +1150,17 @@ button {
   width: 100%;
 }
 
+.client-profile-sheet__actions .adm-grid-item {
+  display: flex;
+  justify-content: center;
+}
+
 .client-profile-sheet__action.adm-button {
-  --border-radius: 18px;
+  --border-radius: var(--mc-button-radius);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  min-width: 92px;
   min-height: 76px;
   padding: 10px 6px;
   font-weight: 800;
@@ -1119,7 +1171,6 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
   height: 100%;
   font-size: 12px;
   line-height: 1.15;
@@ -1128,7 +1179,6 @@ button {
 
 .client-profile-sheet__action-content {
   --gap: 6px;
-  width: 100%;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -1178,8 +1228,17 @@ button {
 }
 
 .client-form-footer {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.form-action-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   padding-top: 4px;
 }
@@ -1285,7 +1344,7 @@ button {
   align-items: flex-start;
   justify-content: center;
   text-align: left;
-  border-radius: 28px !important;
+  border-radius: var(--mc-button-radius) !important;
 }
 
 .quick-action-button__icon {
@@ -1360,7 +1419,7 @@ button {
   background: rgba(255, 255, 255, 0.92);
 }
 
-.adm-tabs {
+.filter-tabs.adm-capsule-tabs {
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.7);
   border: 1px solid var(--mc-border);
@@ -1368,16 +1427,26 @@ button {
   padding: 6px;
 }
 
-.adm-tabs-tab-list {
+.filter-tabs .adm-capsule-tabs-header {
   border-bottom: 0;
+  padding: 0;
 }
 
-.adm-tabs-tab {
+.filter-tabs .adm-capsule-tabs-tab-list {
+  gap: 6px;
+}
+
+.filter-tabs .adm-capsule-tabs-tab {
+  flex: 1;
+  justify-content: center;
   border-radius: 16px;
+  background: transparent;
+  color: var(--mc-text);
 }
 
-.adm-tabs-tab-active {
+.filter-tabs .adm-capsule-tabs-tab-active {
   background: rgba(235, 90, 60, 0.12);
+  color: var(--mc-primary);
 }
 
 .bottom-nav.adm-tab-bar {
@@ -1423,6 +1492,32 @@ button {
 
 .bottom-nav .adm-tab-bar-item-icon {
   font-size: 21px;
+}
+
+.bottom-nav__icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+.bottom-nav__icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+.bottom-nav .adm-badge {
+  display: grid;
+  place-items: center;
+}
+
+.bottom-nav .adm-badge-content {
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  border: 2px solid #ffffff;
+  font-size: 9px;
+  line-height: 10px;
 }
 
 .bottom-nav .adm-tab-bar-item-title {
@@ -1542,6 +1637,7 @@ button {
 .auth-social-list {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 12px;
   margin-top: 18px;
 }
@@ -1549,7 +1645,7 @@ button {
 .auth-social-button {
   height: 54px;
   padding-inline: 16px;
-  border-radius: 18px;
+  border-radius: var(--mc-button-radius);
   border: 1px solid var(--mc-border);
   background: #fff;
   color: var(--mc-text);
@@ -1562,7 +1658,6 @@ button {
 .auth-social-button .adm-button-content {
   align-items: center;
   justify-content: center;
-  width: 100%;
 }
 
 .auth-social-button__inner {
@@ -1570,7 +1665,6 @@ button {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  width: 100%;
 }
 
 .auth-social__icon {
@@ -1630,7 +1724,7 @@ button {
 .auth-email-button {
   height: 52px;
   margin-top: 2px;
-  border-radius: 18px;
+  border-radius: var(--mc-button-radius);
   border: 0;
   background: var(--mc-primary);
   color: #fff;

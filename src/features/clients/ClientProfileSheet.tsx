@@ -1,6 +1,7 @@
 import { CalendarOutline, ClockCircleOutline, EditSOutline } from 'antd-mobile-icons';
 import { Button, Card, Grid, List, Popup, SafeArea, Space } from 'antd-mobile';
 import type { Client } from '../../types/domain';
+import { formatPhone } from '../../utils/contact';
 
 type ClientProfileSheetProps = {
   visible: boolean;
@@ -89,7 +90,7 @@ export function ClientProfileSheet({
 
         <Card className="client-profile-sheet__card">
           <List className="client-profile-sheet__list">
-            <List.Item extra={valueOrFallback(client?.phone)}>Telefone</List.Item>
+            <List.Item extra={valueOrFallback(formatPhone(client?.phone))}>Telefone</List.Item>
             <List.Item extra={valueOrFallback(client?.email)}>E-mail</List.Item>
           </List>
         </Card>

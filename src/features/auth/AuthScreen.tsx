@@ -68,7 +68,6 @@ function SocialIcon({ iconSrc, iconAlt, tone }: Pick<SocialOption, 'iconSrc' | '
 function SocialButton({ label, iconSrc, iconAlt, tone, onClick, disabled, loading }: SocialOption) {
   return (
     <Button
-      block
       fill="outline"
       className={`auth-social-button auth-social-button--${tone}`}
       disabled={disabled}
@@ -171,7 +170,6 @@ export function AuthScreen({ mode, onGoogle, onEmailSubmit, onSwitchMode, isBusy
           <Divider className="auth-divider">Ou continue com</Divider>
 
           <Button
-            block
             className="auth-email-button"
             color="primary"
             fill="solid"
@@ -221,12 +219,20 @@ export function AuthScreen({ mode, onGoogle, onEmailSubmit, onSwitchMode, isBusy
             <Form.Item
               name="email"
               label="E-mail"
+              normalize={(value) => String(value ?? '').trim().toLowerCase()}
               rules={[
                 { required: true, message: 'Informe seu e-mail.' },
                 { type: 'email', message: 'Informe um e-mail válido.' },
               ]}
             >
-              <Input type="email" placeholder="seuemail@dominio.com" autoComplete="email" clearable />
+              <Input
+                type="email"
+                inputMode="email"
+                placeholder="seuemail@dominio.com"
+                autoComplete="email"
+                autoCapitalize="none"
+                clearable
+              />
             </Form.Item>
 
             <Form.Item
@@ -246,7 +252,6 @@ export function AuthScreen({ mode, onGoogle, onEmailSubmit, onSwitchMode, isBusy
             </Form.Item>
 
             <Button
-              block
               className="auth-email-button"
               color="primary"
               fill="solid"
@@ -257,7 +262,6 @@ export function AuthScreen({ mode, onGoogle, onEmailSubmit, onSwitchMode, isBusy
             </Button>
 
             <Button
-              block
               style={{ marginTop: 12 }}
               onClick={() => setEmailPopupVisible(false)}
             >

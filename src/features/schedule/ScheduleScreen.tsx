@@ -1,5 +1,5 @@
 import { AddOutline, CalendarOutline, CheckCircleOutline, RightOutline } from 'antd-mobile-icons';
-import { Button, Card, DatePicker, Form, Input, List, Picker, Popup, SearchBar, Selector, Space, Tabs, Toast } from 'antd-mobile';
+import { Button, CapsuleTabs, Card, DatePicker, Form, Input, List, Picker, Popup, SearchBar, Selector, Space, Toast } from 'antd-mobile';
 import { useMemo, useState } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
 import { EmptyState } from '../../components/EmptyState';
@@ -344,11 +344,11 @@ export function ScheduleScreen() {
         </div>
       </Card>
 
-      <Tabs activeKey={view} onChange={(key) => setView(key as ScheduleView)}>
+      <CapsuleTabs className="filter-tabs" activeKey={view} onChange={(key) => setView(key as ScheduleView)}>
         {views.map((tab) => (
-          <Tabs.Tab key={tab.key} title={tab.title} />
+          <CapsuleTabs.Tab key={tab.key} title={tab.title} />
         ))}
-      </Tabs>
+      </CapsuleTabs>
 
       <Card className="soft-card">
         <div className="section-head">
@@ -477,7 +477,7 @@ export function ScheduleScreen() {
                 cancelText="Cancelar"
               >
                 {(_, actions) => (
-                  <Button block shape="rounded" fill="outline" onClick={actions.open}>
+                  <Button shape="rounded" fill="outline" onClick={actions.open}>
                     {formatDateLabel(selectedDate)}
                   </Button>
                 )}
@@ -498,7 +498,7 @@ export function ScheduleScreen() {
                 cancelText="Cancelar"
               >
                 {(_, actions) => (
-                  <Button block shape="rounded" fill="outline" onClick={actions.open}>
+                  <Button shape="rounded" fill="outline" onClick={actions.open}>
                     {selectedTime}
                   </Button>
                 )}
@@ -523,11 +523,11 @@ export function ScheduleScreen() {
             </Form.Item>
           </Form>
 
-          <Space direction="vertical" block>
-            <Button color="primary" fill="solid" block size="large" shape="rounded" loading={saving} onClick={handleSaveAppointment}>
+          <Space wrap className="form-action-row">
+            <Button color="primary" fill="solid" size="large" shape="rounded" loading={saving} onClick={handleSaveAppointment}>
               {editingAppointment ? 'Salvar alterações' : 'Criar agendamento'}
             </Button>
-            <Button block size="large" shape="rounded" onClick={closeEditor}>
+            <Button size="large" shape="rounded" onClick={closeEditor}>
               Cancelar
             </Button>
           </Space>
