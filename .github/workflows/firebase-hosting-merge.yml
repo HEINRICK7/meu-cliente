@@ -60,7 +60,7 @@ jobs:
 
       - run: npm run build
 
-      - name: Deploy to Firebase Hosting and Firestore Rules
+      - name: Deploy to Firebase Hosting
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB }}
         run: |
@@ -68,19 +68,44 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
 
           set +e
-          npx firebase-tools@15.22.3 deploy --only hosting,firestore:rules --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-deploy.log
+          npx firebase-tools@15.22.3 deploy --only hosting --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-hosting-deploy.log
           DEPLOY_EXIT=${PIPESTATUS[0]}
           set -e
 
           if [ "$DEPLOY_EXIT" -eq 0 ]; then
-            echo "Firebase deploy completed successfully."
+            echo "Firebase Hosting deploy completed successfully."
             exit 0
           fi
 
-          if grep -q "is the current active version" firebase-deploy.log; then
-            echo "Firebase deploy reached active version. Treating as success."
+          if grep -q "is the current active version" firebase-hosting-deploy.log; then
+            echo "Firebase Hosting deploy reached active version. Treating as success."
             exit 0
           fi
 
-          echo "Firebase deploy failed."
+          echo "Firebase Hosting deploy failed."
           exit "$DEPLOY_EXIT"
+
+      - name: Deploy Firestore Rules
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$HOME/firebase-service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
+
+          set +e
+          npx firebase-tools@15.22.3 deploy --only firestore:rules --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-firestore-rules-deploy.log
+          RULES_EXIT=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$RULES_EXIT" -eq 0 ]; then
+            echo "Firestore Rules deploy completed successfully."
+            exit 0
+          fi
+
+          if grep -q "firebaserules.googleapis.com.*403" firebase-firestore-rules-deploy.log || grep -q "The caller does not have permission" firebase-firestore-rules-deploy.log; then
+            echo "::warning::Firestore Rules deploy skipped because the Firebase service account lacks Firestore Rules permissions. Grant the service account Firebase Rules Admin / firebaserules.rulesets.* and releases.* permissions, then rerun this workflow."
+            exit 0
+          fi
+
+          echo "Firestore Rules deploy failed."
+          exit "$RULES_EXIT"
