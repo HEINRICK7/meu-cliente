@@ -1,4 +1,4 @@
-import { CalendarOutline, MessageOutline, UserAddOutline } from 'antd-mobile-icons';
+import { CalendarOutline, MessageOutline } from 'antd-mobile-icons';
 import { Button, Card, Empty, Grid, Tag } from 'antd-mobile';
 import { useEffect, useMemo, useState } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
@@ -170,7 +170,6 @@ export function HomeScreen() {
             return (
               <Grid.Item key={toDateKey(date)}>
                 <Button
-                  block
                   fill="none"
                   className={isActive ? 'hero-day-chip hero-day-chip--active' : 'hero-day-chip'}
                   onClick={() => setSelectedDay(date)}
@@ -243,11 +242,11 @@ export function HomeScreen() {
             {selectedAppointment.notes ? ` • ${selectedAppointment.notes}` : ''}
           </p>
           <div className="hero-action-row">
-            <Button block color="primary" fill="solid" shape="rounded" onClick={() => goToRoute('agenda')}>
+            <Button color="primary" fill="solid" shape="rounded" onClick={() => goToRoute('agenda')}>
               <CalendarOutline />
               Abrir agenda
             </Button>
-            <Button block color="primary" fill="outline" shape="rounded" onClick={() => goToRoute('atendimentos')}>
+            <Button color="primary" fill="outline" shape="rounded" onClick={() => goToRoute('atendimentos')}>
               <MessageOutline />
               Registrar atendimento
             </Button>

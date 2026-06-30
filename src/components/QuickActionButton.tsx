@@ -17,7 +17,6 @@ export function QuickActionButton({ label, hint, onClick, tone = 'dark', icon }:
       className={isDark ? 'quick-action-button quick-action-button--dark' : 'quick-action-button'}
       color={isDark ? 'default' : 'primary'}
       fill="solid"
-      block
       shape="rounded"
       onClick={onClick}
     >

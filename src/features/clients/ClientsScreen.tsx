@@ -2,6 +2,7 @@ import { AddOutline, UserAddOutline, UserOutline } from 'antd-mobile-icons';
 import {
   Button,
   Card,
+  CapsuleTabs,
   DatePicker,
   Ellipsis,
   Form,
@@ -11,7 +12,6 @@ import {
   SearchBar,
   Space,
   Switch,
-  Tabs,
   TextArea,
   Toast,
 } from 'antd-mobile';
@@ -25,6 +25,7 @@ import { useClients } from '../../hooks/useClients';
 import { isFirestoreUnavailableError } from '../../services/firestoreHealth';
 import { formatAttendanceDate } from '../../services/attendancesService';
 import { formatAppointmentDate } from '../../services/appointmentsService';
+import { formatPhone, normalizeEmail, onlyDigits } from '../../utils/contact';
 import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Client, ClientStatus, ClientUpsertInput } from '../../types/domain';
 import { ClientProfileSheet } from './ClientProfileSheet';
@@ -47,8 +48,8 @@ type ClientFormValues = {
 function clientFormToPayload(values: ClientFormValues): ClientUpsertInput {
   return {
     name: values.name.trim(),
-    phone: values.phone.trim(),
-    email: values.email?.trim() || undefined,
+    phone: onlyDigits(values.phone),
+    email: normalizeEmail(values.email) || undefined,
     birthDate: values.birthDate?.trim() || undefined,
     notes: values.notes?.trim() || undefined,
     status: values.active ? 'ativo' : 'inativo',
@@ -223,8 +224,8 @@ export function ClientsScreen() {
     setSelectedBirthDate(client.birthDate ? parseCalendarDate(client.birthDate) : null);
     form.setFieldsValue({
       name: client.name,
-      phone: client.phone,
-      email: client.email,
+      phone: formatPhone(client.phone),
+      email: client.email ? normalizeEmail(client.email) : undefined,
       notes: client.notes,
       active: client.status === 'ativo',
     });
@@ -275,11 +276,11 @@ export function ClientsScreen() {
     <div className="screen-stack">
       <SearchBar value={query} placeholder="Buscar cliente" onChange={setQuery} />
 
-      <Tabs activeKey={status} onChange={(key) => setStatus(key as 'todos' | ClientStatus)}>
+      <CapsuleTabs className="filter-tabs" activeKey={status} onChange={(key) => setStatus(key as 'todos' | ClientStatus)}>
         {statusTabs.map((tab) => (
-          <Tabs.Tab key={tab.key} title={tab.title} />
+          <CapsuleTabs.Tab key={tab.key} title={tab.title} />
         ))}
-      </Tabs>
+      </CapsuleTabs>
 
       {error ? <EmptyState title="Erro ao carregar clientes" description={error} /> : null}
 
@@ -306,7 +307,7 @@ export function ClientsScreen() {
           }
         >
           {clients.map((client) => {
-            const description = [client.phone || 'Sem telefone cadastrado', client.email].filter(Boolean).join(' · ');
+            const description = [formatPhone(client.phone) || 'Sem telefone cadastrado', client.email].filter(Boolean).join(' · ');
 
             return (
               <List.Item
@@ -327,8 +328,8 @@ export function ClientsScreen() {
         </List>
       )}
 
-      <Space direction="vertical" block>
-        <Button color="primary" fill="solid" block size="large" shape="rounded" onClick={openCreateClient}>
+      <Space>
+        <Button color="primary" fill="solid" size="large" shape="rounded" onClick={openCreateClient}>
           <UserAddOutline />
           Novo cliente
         </Button>
@@ -381,13 +382,21 @@ export function ClientsScreen() {
             <Form.Item
               name="phone"
               label="Telefone"
+              normalize={(value) => formatPhone(String(value ?? ''))}
               rules={[{ required: true, message: 'Informe o telefone.' }]}
             >
-              <Input type="tel" placeholder="(11) 99999-9999" />
+              <Input type="tel" inputMode="tel" placeholder="(11) 99999-9999" maxLength={15} clearable />
             </Form.Item>
 
             <Form.Item name="email" label="E-mail">
-              <Input type="email" placeholder="cliente@email.com" />
+              <Input
+                type="email"
+                inputMode="email"
+                placeholder="cliente@email.com"
+                autoComplete="email"
+                autoCapitalize="none"
+                clearable
+              />
             </Form.Item>
 
             <div className="appointment-form-group">
@@ -400,7 +409,7 @@ export function ClientsScreen() {
                 cancelText="Cancelar"
               >
                 {(_, actions) => (
-                  <Button block shape="rounded" fill="outline" onClick={actions.open}>
+                  <Button shape="rounded" fill="outline" onClick={actions.open}>
                     {formatDateLabel(selectedBirthDate)}
                   </Button>
                 )}
@@ -417,10 +426,10 @@ export function ClientsScreen() {
           </Form>
 
           <div className="client-form-footer">
-            <Button block onClick={closeEditor}>
+            <Button onClick={closeEditor}>
               Cancelar
             </Button>
-            <Button color="primary" fill="solid" block onClick={handleSubmit} loading={submitting}>
+            <Button color="primary" fill="solid" onClick={handleSubmit} loading={submitting}>
               {editingClient ? 'Salvar alterações' : 'Criar cliente'}
             </Button>
           </div>

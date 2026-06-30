@@ -206,7 +206,6 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
         </Grid>
         <p className="muted-text">ID do negócio: {session?.businessId}</p>
         <Button
-          block
           color="primary"
           fill="solid"
           shape="rounded"
@@ -263,7 +262,6 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
           </Grid.Item>
         </Grid>
         <Button
-          block
           color="primary"
           fill={pushEnabled ? 'outline' : 'solid'}
           shape="rounded"
@@ -356,11 +354,11 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
             </Form.Item>
           </Form>
 
-          <Space direction="vertical" block>
-            <Button color="primary" fill="solid" block size="large" shape="rounded" loading={saving} onClick={handleSaveProfile}>
+          <Space wrap className="form-action-row">
+            <Button color="primary" fill="solid" size="large" shape="rounded" loading={saving} onClick={handleSaveProfile}>
               Salvar alterações
             </Button>
-            <Button block size="large" shape="rounded" onClick={() => setProfileVisible(false)}>
+            <Button size="large" shape="rounded" onClick={() => setProfileVisible(false)}>
               Cancelar
             </Button>
           </Space>

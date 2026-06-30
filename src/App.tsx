@@ -24,6 +24,7 @@ import { subscribeToForegroundPushes } from './services/pushNotificationsService
 import type { AuthFormValues } from './features/auth/AuthScreen';
 import type { AppRoute, AuthRoute, Route } from './types/domain';
 import { compareAppointmentsBySchedule, isAppointmentOnDay } from './services/appointmentsService';
+import { normalizeEmail } from './utils/contact';
 import { toDateKey } from './utils/date';
 
 function isAppRoute(route: Route): route is AppRoute {
@@ -135,7 +136,7 @@ export default function App() {
     setAuthBusy(true);
 
     try {
-      await signInWithEmail(values.email, values.password);
+      await signInWithEmail(normalizeEmail(values.email), values.password);
       navigate('inicio');
     } catch (error) {
       Toast.show({ content: getAuthErrorMessage(error) });
@@ -149,7 +150,7 @@ export default function App() {
     setAuthBusy(true);
 
     try {
-      await signUpWithEmail(values.email, values.password, values.name || '');
+      await signUpWithEmail(normalizeEmail(values.email), values.password, values.name || '');
       navigate('inicio');
     } catch (error) {
       Toast.show({ content: getAuthErrorMessage(error) });
