@@ -1,10 +1,13 @@
-import { AddOutline, CalendarOutline, ClockCircleOutline, UserAddOutline } from 'antd-mobile-icons';
+import { AddOutline, CalendarOutline, ClockCircleOutline, RightOutline, UserAddOutline } from 'antd-mobile-icons';
 import {
+  Avatar,
   Button,
   Card,
   DatePicker,
+  Ellipsis,
   Form,
   Input,
+  List,
   Popup,
   SearchBar,
   Space,
@@ -16,7 +19,6 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
 import { AttachmentsPanel } from '../../components/AttachmentsPanel';
-import { ClientCard } from '../../components/ClientCard';
 import { AttendanceCard } from '../../components/AttendanceCard';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadingState } from '../../components/LoadingState';
@@ -30,6 +32,7 @@ import { formatAttendanceDate } from '../../services/attendancesService';
 import { formatAppointmentDate } from '../../services/appointmentsService';
 import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Appointment, Attendance, Client, ClientStatus, ClientUpsertInput } from '../../types/domain';
+import { StatusTag } from '../../components/StatusTag';
 
 const statusTabs: Array<{ key: 'todos' | ClientStatus; title: string }> = [
   { key: 'todos', title: 'Todos' },
@@ -515,16 +518,30 @@ export function ClientsScreen() {
             onAction={openCreateClient}
           />
         ) : (
-          <div className="screen-stack">
+          <List className="client-list">
             {clients.map((client) => (
-              <ClientCard
+              <List.Item
                 key={client.id}
-                client={client}
-                selected={client.id === selectedClient?.id}
+                className={client.id === selectedClient?.id ? 'client-list__item client-list__item--selected' : 'client-list__item'}
+                prefix={<Avatar className="client-list__avatar" src="" fallback={client.name.charAt(0)} />}
+                extra={<RightOutline />}
                 onClick={() => setSelectedClientId(client.id)}
-              />
+              >
+                <div className="client-list__content">
+                  <div className="client-list__title-row">
+                    <strong>
+                      <Ellipsis content={client.name} />
+                    </strong>
+                    <StatusTag status={client.status} />
+                  </div>
+                  <span>
+                    <Ellipsis content={client.phone || 'Sem telefone cadastrado'} />
+                  </span>
+                  {client.nextAppointment ? <span>{client.nextAppointment}</span> : null}
+                </div>
+              </List.Item>
             ))}
-          </div>
+          </List>
         )}
       </Card>
 
