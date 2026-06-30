@@ -42,7 +42,6 @@ const timeOptions = Array.from({ length: 48 }, (_, index) => {
 });
 
 type AppointmentFormValues = {
-  time: string;
   serviceType: string;
   notes?: string;
 };
@@ -199,7 +198,6 @@ export function ScheduleScreen() {
     setClientSearch('');
     form.resetFields();
     form.setFieldsValue({
-      time: '09:00',
       serviceType: 'Atendimento',
       notes: '',
     });
@@ -219,7 +217,6 @@ export function ScheduleScreen() {
 
     setEditingAppointment(appointment);
     form.setFieldsValue({
-      time: appointment.time,
       serviceType: appointment.serviceType,
       notes: appointment.notes ?? '',
     });
@@ -280,7 +277,7 @@ export function ScheduleScreen() {
         clientId: selectedClient.id,
         clientName: selectedClient.name,
         date: toDateKey(selectedDate),
-        time: values.time.trim(),
+        time: selectedTime,
         serviceType: values.serviceType.trim(),
         status: selectedStatus,
         notes: values.notes?.trim() || undefined,
@@ -487,21 +484,14 @@ export function ScheduleScreen() {
               </DatePicker>
             </div>
 
-            <Form.Item
-              name="time"
-              label="Horário"
-              rules={[
-                { required: true, message: 'Informe o horário.' },
-                { pattern: /^\d{2}:\d{2}$/, message: 'Use o formato 00:00.' },
-              ]}
-            >
+            <div className="appointment-form-group">
+              <div className="appointment-form-group__label">Horário</div>
               <Picker
                 columns={[timeOptions]}
                 value={[selectedTime]}
                 onConfirm={(values) => {
                   const nextTime = String(values[0] ?? '09:00');
                   setSelectedTime(nextTime);
-                  form.setFieldsValue({ time: nextTime });
                 }}
                 title="Selecionar horário"
                 confirmText="Selecionar"
@@ -513,7 +503,7 @@ export function ScheduleScreen() {
                   </Button>
                 )}
               </Picker>
-            </Form.Item>
+            </div>
 
             <div className="appointment-form-group">
               <div className="appointment-form-group__label">Status</div>
