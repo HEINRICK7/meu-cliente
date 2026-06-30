@@ -24,18 +24,18 @@ import { AttachmentsPanel } from '../../components/AttachmentsPanel';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadingState } from '../../components/LoadingState';
 import { useAttendances } from '../../hooks/useAttendances';
+import { useAppointments } from '../../hooks/useAppointments';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
 import { formatAttendanceDate, isAttendanceOnDay } from '../../services/attendancesService';
+import { formatAppointmentDate } from '../../services/appointmentsService';
 import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Attendance, AttendanceUpsertInput } from '../../types/domain';
 
 type AttendanceFormValues = {
-  clientName: string;
   title: string;
   description: string;
   nextAction?: string;
-  appointmentId?: string;
 };
 
 function formatDateLabel(date: Date | null) {
@@ -59,9 +59,11 @@ export function AttendancesScreen() {
     session?.businessId ?? null,
     session?.id ?? null,
   );
+  const { appointments } = useAppointments(session?.businessId ?? null, session?.id ?? null);
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingAttendance, setEditingAttendance] = useState<Attendance | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [saving, setSaving] = useState(false);
   const [form] = Form.useForm<AttendanceFormValues>();
@@ -77,18 +79,25 @@ export function AttendancesScreen() {
   );
 
   const recentClients = useMemo(() => clients.slice(0, 8), [clients]);
+  const selectedClient = useMemo(
+    () => clients.find((client) => client.id === selectedClientId) ?? null,
+    [clients, selectedClientId],
+  );
+  const selectedClientAppointments = useMemo(
+    () => appointments.filter((appointment) => appointment.clientId === selectedClientId).slice(0, 8),
+    [appointments, selectedClientId],
+  );
   const lastAttendance = attendances[0] || null;
 
   function resetEditorState() {
     setSelectedClientId(null);
+    setSelectedAppointmentId(null);
     setSelectedDate(new Date());
     form.resetFields();
     form.setFieldsValue({
-      clientName: '',
       title: 'Sessão realizada',
       description: '',
       nextAction: '',
-      appointmentId: '',
     });
   }
 
@@ -98,9 +107,6 @@ export function AttendancesScreen() {
 
     if (recentClients[0]) {
       setSelectedClientId(recentClients[0].id);
-      form.setFieldsValue({
-        clientName: recentClients[0].name,
-      });
     }
 
     setEditorVisible(true);
@@ -109,7 +115,6 @@ export function AttendancesScreen() {
   function openQuickTemplate() {
     openCreateAttendance();
     form.setFieldsValue({
-      clientName: form.getFieldValue('clientName') || '',
       title: 'Sessão realizada',
       description: 'Resumo rápido do atendimento realizado hoje.',
       nextAction: 'Retorno conforme combinado',
@@ -119,13 +124,12 @@ export function AttendancesScreen() {
   function openEditAttendance(attendance: Attendance) {
     setEditingAttendance(attendance);
     setSelectedClientId(attendance.clientId);
+    setSelectedAppointmentId(attendance.appointmentId ?? null);
     setSelectedDate(parseCalendarDate(attendance.date));
     form.setFieldsValue({
-      clientName: attendance.clientName,
       title: attendance.title,
       description: attendance.description,
       nextAction: attendance.nextAction ?? '',
-      appointmentId: attendance.appointmentId ?? '',
     });
     setEditorVisible(true);
   }
@@ -139,15 +143,7 @@ export function AttendancesScreen() {
   function handleClientSelection(values: string[]) {
     const nextClientId = values[0] ?? null;
     setSelectedClientId(nextClientId);
-
-    if (!nextClientId) {
-      return;
-    }
-
-    const selectedClient = clients.find((client) => client.id === nextClientId);
-    if (selectedClient) {
-      form.setFieldsValue({ clientName: selectedClient.name });
-    }
+    setSelectedAppointmentId(null);
   }
 
   async function handleSaveAttendance() {
@@ -160,7 +156,7 @@ export function AttendancesScreen() {
       setSaving(true);
       const values = await form.validateFields();
 
-      if (!selectedClientId) {
+      if (!selectedClient) {
         Toast.show({ content: 'Selecione um cliente para o atendimento.' });
         return;
       }
@@ -171,9 +167,9 @@ export function AttendancesScreen() {
       }
 
       const payload: AttendanceUpsertInput = {
-        clientId: selectedClientId,
-        clientName: values.clientName.trim(),
-        appointmentId: values.appointmentId?.trim() || undefined,
+        clientId: selectedClient.id,
+        clientName: selectedClient.name,
+        appointmentId: selectedAppointmentId || undefined,
         date: toDateKey(selectedDate),
         title: values.title.trim(),
         description: values.description.trim(),
@@ -351,14 +347,6 @@ export function AttendancesScreen() {
 
           <Form form={form} layout="vertical" className="appointment-form">
             <Form.Item
-              name="clientName"
-              label="Nome do cliente"
-              rules={[{ required: true, message: 'Informe o nome do cliente.' }]}
-            >
-              <Input placeholder="Nome completo" clearable />
-            </Form.Item>
-
-            <Form.Item
               name="title"
               label="Título"
               rules={[{ required: true, message: 'Informe o título.' }]}
@@ -383,9 +371,31 @@ export function AttendancesScreen() {
               </DatePicker>
             </div>
 
-            <Form.Item name="appointmentId" label="Agendamento vinculado">
-              <Input placeholder="ID do agendamento (opcional)" clearable />
-            </Form.Item>
+            <div className="appointment-form-group">
+              <div className="appointment-form-group__label">Agendamento vinculado</div>
+              {!selectedClient ? (
+                <p className="muted-text">Selecione um cliente para ver os agendamentos.</p>
+              ) : selectedClientAppointments.length === 0 ? (
+                <p className="muted-text">Nenhum agendamento encontrado para este cliente.</p>
+              ) : (
+                <Selector
+                  value={selectedAppointmentId ? [selectedAppointmentId] : []}
+                  options={selectedClientAppointments.map((appointment) => ({
+                    value: appointment.id,
+                    label: (
+                      <div className="appointment-selector__item">
+                        <strong>{appointment.serviceType}</strong>
+                        <span>
+                          {formatAppointmentDate(appointment.date)} às {appointment.time}
+                        </span>
+                      </div>
+                    ),
+                  }))}
+                  columns={1}
+                  onChange={(values) => setSelectedAppointmentId(values[0] ?? null)}
+                />
+              )}
+            </div>
 
             <Form.Item
               name="description"

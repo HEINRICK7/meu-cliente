@@ -1,5 +1,5 @@
 import { AddOutline, CalendarOutline, CheckCircleOutline, RightOutline } from 'antd-mobile-icons';
-import { Button, Card, DatePicker, Form, Input, List, Popup, Selector, Space, Tabs, Toast } from 'antd-mobile';
+import { Button, Card, DatePicker, Form, Input, List, Picker, Popup, SearchBar, Selector, Space, Tabs, Toast } from 'antd-mobile';
 import { useMemo, useState } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
 import { EmptyState } from '../../components/EmptyState';
@@ -32,8 +32,16 @@ const statusOptions: Array<{ value: AppointmentStatus; label: string }> = [
   { value: 'faltou', label: 'Faltou' },
 ];
 
+const timeOptions = Array.from({ length: 48 }, (_, index) => {
+  const totalMinutes = index * 30;
+  const hour = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const minute = String(totalMinutes % 60).padStart(2, '0');
+  const value = `${hour}:${minute}`;
+
+  return { label: value, value };
+});
+
 type AppointmentFormValues = {
-  clientName: string;
   time: string;
   serviceType: string;
   notes?: string;
@@ -49,6 +57,10 @@ function formatDateLabel(date: Date | null) {
 
 function normalizeLabel(value: string) {
   return value.trim().toLowerCase();
+}
+
+function clientSearchText(client: { name: string; phone: string; email?: string }) {
+  return normalizeLabel(`${client.name} ${client.phone} ${client.email ?? ''}`);
 }
 
 function sortBySchedule(left: Appointment, right: Appointment) {
@@ -116,8 +128,10 @@ export function ScheduleScreen() {
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [selectedTime, setSelectedTime] = useState('09:00');
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus>('agendado');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [clientSearch, setClientSearch] = useState('');
   const [form] = Form.useForm<AppointmentFormValues>();
 
   const todayKey = toDateKey(new Date());
@@ -161,14 +175,30 @@ export function ScheduleScreen() {
 
   const nextAppointment = todayAppointments[0] || upcomingAppointments[0] || sortedAppointments[0] || null;
   const recentClients = useMemo(() => clients.slice(0, 8), [clients]);
+  const selectedClient = useMemo(
+    () => clients.find((client) => client.id === selectedClientId) ?? null,
+    [clients, selectedClientId],
+  );
+  const clientSearchResults = useMemo(() => {
+    const normalizedSearch = normalizeLabel(clientSearch);
+
+    if (!normalizedSearch) {
+      return recentClients;
+    }
+
+    return clients
+      .filter((client) => clientSearchText(client).includes(normalizedSearch))
+      .slice(0, 8);
+  }, [clientSearch, clients, recentClients]);
 
   function resetEditorState() {
     setSelectedDate(new Date());
+    setSelectedTime('09:00');
     setSelectedStatus('agendado');
     setSelectedClientId(null);
+    setClientSearch('');
     form.resetFields();
     form.setFieldsValue({
-      clientName: '',
       time: '09:00',
       serviceType: 'Atendimento',
       notes: '',
@@ -178,14 +208,6 @@ export function ScheduleScreen() {
   function openCreateAppointment() {
     setEditingAppointment(null);
     resetEditorState();
-
-    if (recentClients[0]) {
-      setSelectedClientId(recentClients[0].id);
-      form.setFieldsValue({
-        clientName: recentClients[0].name,
-      });
-    }
-
     setEditorVisible(true);
   }
 
@@ -197,14 +219,15 @@ export function ScheduleScreen() {
 
     setEditingAppointment(appointment);
     form.setFieldsValue({
-      clientName: appointmentClient?.name ?? appointment.clientName,
       time: appointment.time,
       serviceType: appointment.serviceType,
       notes: appointment.notes ?? '',
     });
     setSelectedDate(parseCalendarDate(appointment.date));
+    setSelectedTime(appointment.time);
     setSelectedStatus(appointment.status);
     setSelectedClientId(appointmentClient?.id ?? null);
+    setClientSearch(appointmentClient?.name ?? appointment.clientName);
     setEditorVisible(true);
   }
 
@@ -214,18 +237,23 @@ export function ScheduleScreen() {
     resetEditorState();
   }
 
-  function handleClientSelection(values: string[]) {
-    const nextClientId = values[0] ?? null;
-    setSelectedClientId(nextClientId);
+  function handleClientSearchChange(value: string) {
+    setClientSearch(value);
 
-    if (!nextClientId) {
+    if (selectedClient && normalizeLabel(value) !== normalizeLabel(selectedClient.name)) {
+      setSelectedClientId(null);
+    }
+  }
+
+  function handleClientSelection(clientId: string) {
+    const nextClient = clients.find((client) => client.id === clientId);
+
+    if (!nextClient) {
       return;
     }
 
-    const selectedClient = clients.find((client) => client.id === nextClientId);
-    if (selectedClient) {
-      form.setFieldsValue({ clientName: selectedClient.name });
-    }
+    setSelectedClientId(nextClient.id);
+    setClientSearch(nextClient.name);
   }
 
   async function handleSaveAppointment() {
@@ -242,8 +270,6 @@ export function ScheduleScreen() {
         Toast.show({ content: 'Selecione a data do agendamento.' });
         return;
       }
-
-      const selectedClient = clients.find((client) => client.id === selectedClientId);
 
       if (!selectedClient) {
         Toast.show({ content: 'Selecione um cliente cadastrado para o agendamento.' });
@@ -403,36 +429,39 @@ export function ScheduleScreen() {
           </div>
 
           <div className="appointment-form-group">
-            <div className="appointment-form-group__label">Cliente recente</div>
-            {recentClients.length === 0 ? (
+            <div className="appointment-form-group__label">Nome do cliente</div>
+            {clients.length === 0 ? (
               <p className="muted-text">Nenhum cliente cadastrado ainda. Cadastre um cliente antes de criar o agendamento.</p>
             ) : (
-              <Selector
-                value={selectedClientId ? [selectedClientId] : []}
-                options={recentClients.map((client) => ({
-                  value: client.id,
-                  label: (
-                    <div className="appointment-selector__item">
-                      <strong>{client.name}</strong>
-                      <span>{client.phone}</span>
-                    </div>
-                  ),
-                }))}
-                columns={1}
-                onChange={handleClientSelection}
-              />
+              <>
+                <SearchBar
+                  value={clientSearch}
+                  placeholder="Buscar cliente por nome ou telefone"
+                  onChange={handleClientSearchChange}
+                />
+
+                {clientSearchResults.length === 0 ? (
+                  <p className="muted-text">Nenhum cliente encontrado para essa busca.</p>
+                ) : (
+                  <List className="appointment-client-results">
+                    {clientSearchResults.map((client) => (
+                      <List.Item key={client.id} onClick={() => handleClientSelection(client.id)}>
+                        <span className="appointment-client-option">
+                          <span className="appointment-selector__item">
+                            <strong>{client.name}</strong>
+                            <span>{client.phone || 'Sem telefone cadastrado'}</span>
+                          </span>
+                          {selectedClientId === client.id ? <CheckCircleOutline /> : null}
+                        </span>
+                      </List.Item>
+                    ))}
+                  </List>
+                )}
+              </>
             )}
           </div>
 
           <Form form={form} layout="vertical" className="appointment-form">
-            <Form.Item
-              name="clientName"
-              label="Nome do cliente"
-              rules={[{ required: true, message: 'Informe o nome do cliente.' }]}
-            >
-              <Input placeholder="Nome completo" clearable />
-            </Form.Item>
-
             <Form.Item
               name="serviceType"
               label="Serviço"
@@ -466,7 +495,24 @@ export function ScheduleScreen() {
                 { pattern: /^\d{2}:\d{2}$/, message: 'Use o formato 00:00.' },
               ]}
             >
-              <Input placeholder="09:00" clearable />
+              <Picker
+                columns={[timeOptions]}
+                value={[selectedTime]}
+                onConfirm={(values) => {
+                  const nextTime = String(values[0] ?? '09:00');
+                  setSelectedTime(nextTime);
+                  form.setFieldsValue({ time: nextTime });
+                }}
+                title="Selecionar horário"
+                confirmText="Selecionar"
+                cancelText="Cancelar"
+              >
+                {(_, actions) => (
+                  <Button block shape="rounded" fill="outline" onClick={actions.open}>
+                    {selectedTime}
+                  </Button>
+                )}
+              </Picker>
             </Form.Item>
 
             <div className="appointment-form-group">

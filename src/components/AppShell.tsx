@@ -1,13 +1,12 @@
 import {
   CalendarOutline,
   BellOutline,
-  MessageOutline,
   MoreOutline,
   UnorderedListOutline,
   UserOutline,
   AddCircleOutline,
 } from 'antd-mobile-icons';
-import { Button, Empty, Popup } from 'antd-mobile';
+import { Avatar, Badge, Button, Empty, List, Popup, SafeArea, TabBar } from 'antd-mobile';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { AppRoute, AuthSession } from '../types/domain';
 
@@ -30,6 +29,7 @@ type AppShellProps = {
 const navItems: Array<{ route: AppRoute; label: string; icon: ReactNode }> = [
   { route: 'inicio', label: 'Início', icon: <CalendarOutline /> },
   { route: 'agenda', label: 'Agenda', icon: <UnorderedListOutline /> },
+  { route: 'atendimentos', label: 'Atender', icon: <AddCircleOutline /> },
   { route: 'clientes', label: 'Clientes', icon: <UserOutline /> },
   { route: 'mais', label: 'Mais', icon: <MoreOutline /> },
 ];
@@ -78,6 +78,7 @@ export function AppShell({ activeRoute, onNavigate, children, session, notificat
     <div className="app-frame">
       <div className="app-shell">
         <header className="app-header app-header--compact">
+          <SafeArea position="top" />
           <div className="app-header__topbar">
             <div className="app-header__brand">
               <div className="app-header__brand-badge">
@@ -94,29 +95,28 @@ export function AppShell({ activeRoute, onNavigate, children, session, notificat
               </div>
             </div>
             <div className="app-header__actions">
-              <button
-                type="button"
+              <Button
+                fill="none"
                 className="app-header__avatar-button"
                 aria-label={`Abrir conta de ${userName}`}
                 onClick={() => onNavigate('mais')}
               >
-                <div className="app-user-chip__avatar">
-                  {userPhoto ? (
-                    <img src={userPhoto} alt="" aria-hidden="true" className="app-user-chip__image" />
-                  ) : (
-                    <span>{shortName(userName)}</span>
-                  )}
-                </div>
-              </button>
-              <button
-                type="button"
+                <Avatar
+                  className="app-user-chip__avatar"
+                  src={userPhoto || ''}
+                  fallback={shortName(userName)}
+                />
+              </Button>
+              <Button
+                fill="none"
                 className="icon-chip icon-chip--light"
                 aria-label="Abrir notificações"
                 onClick={() => setNotificationsVisible(true)}
               >
-                <BellOutline />
-                {notificationCount > 0 ? <span className="app-header__badge">{notificationCount}</span> : null}
-              </button>
+                <Badge content={notificationCount > 0 ? notificationCount : null}>
+                  <BellOutline />
+                </Badge>
+              </Button>
             </div>
           </div>
 
@@ -128,52 +128,17 @@ export function AppShell({ activeRoute, onNavigate, children, session, notificat
 
         <main className="app-content">{children}</main>
 
-        <nav className="bottom-nav" aria-label="Navegação principal">
-          {navItems.slice(0, 2).map((item) => {
-            const isActive = item.route === activeRoute;
-
-            return (
-              <button
-                key={item.route}
-                type="button"
-                className={isActive ? 'bottom-nav__item bottom-nav__item--active' : 'bottom-nav__item'}
-                onClick={() => onNavigate(item.route)}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <span className="bottom-nav__icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            className="bottom-nav__create"
-            onClick={() => onNavigate('atendimentos')}
-            aria-label="Abrir atendimentos"
-          >
-            <AddCircleOutline />
-          </button>
-          {navItems.slice(2).map((item) => {
-            const isActive = item.route === activeRoute;
-
-            return (
-              <button
-                key={item.route}
-                type="button"
-                className={isActive ? 'bottom-nav__item bottom-nav__item--active' : 'bottom-nav__item'}
-                onClick={() => onNavigate(item.route)}
-                aria-current={isActive ? 'page' : undefined}
-              >
-                <span className="bottom-nav__icon" aria-hidden="true">
-                  {item.icon}
-                </span>
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
+        <TabBar
+          className="bottom-nav"
+          activeKey={activeRoute}
+          onChange={(key) => onNavigate(key as AppRoute)}
+          safeArea
+        >
+          {navItems.map((item) => (
+            <TabBar.Item key={item.route} icon={item.icon} title={item.label} />
+          ))}
+        </TabBar>
+        <SafeArea position="bottom" />
 
         <Popup
           visible={notificationsVisible}
@@ -196,25 +161,24 @@ export function AppShell({ activeRoute, onNavigate, children, session, notificat
             {previewNotifications.length === 0 ? (
               <Empty description="Nenhum lembrete agora. A agenda está tranquila." />
             ) : (
-              <div className="notifications-list">
+              <List className="notifications-list">
                 {previewNotifications.map((notification) => (
-                  <button
+                  <List.Item
                     key={notification.id}
-                    type="button"
                     className="notification-item"
                     onClick={() => {
                       setNotificationsVisible(false);
                       onNavigate(notification.route);
                     }}
+                    extra={<span className="notification-item__action">{notification.actionLabel}</span>}
                   >
                     <div className="notification-item__copy">
                       <strong>{notification.title}</strong>
                       <span>{notification.description}</span>
                     </div>
-                    <span className="notification-item__action">{notification.actionLabel}</span>
-                  </button>
+                  </List.Item>
                 ))}
-              </div>
+              </List>
             )}
           </div>
         </Popup>

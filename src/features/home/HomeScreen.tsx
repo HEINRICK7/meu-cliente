@@ -1,5 +1,5 @@
 import { CalendarOutline, MessageOutline, UserAddOutline } from 'antd-mobile-icons';
-import { Button, Card, Empty, Tag } from 'antd-mobile';
+import { Button, Card, Empty, Grid, Selector, Tag } from 'antd-mobile';
 import { useEffect, useMemo, useState } from 'react';
 import { AppointmentCard } from '../../components/AppointmentCard';
 import { ClientCard } from '../../components/ClientCard';
@@ -96,6 +96,7 @@ export function HomeScreen() {
     () => selectedDayAppointments.find((appointment) => appointment.id === selectedAppointmentId) || selectedDayAppointments[0] || null,
     [selectedAppointmentId, selectedDayAppointments],
   );
+  const selectedDayKey = toDateKey(selectedDay);
 
   useEffect(() => {
     if (selectedDayAppointments.length === 0) {
@@ -132,11 +133,11 @@ export function HomeScreen() {
         {todayAppointments.length === 0 ? (
           <Empty description="Nenhum atendimento agendado para hoje." />
         ) : (
-          <div className="home-appointments-grid">
+          <Grid columns={3} gap={8} className="home-appointments-grid">
             {todayAppointments.slice(0, 3).map((appointment) => (
-              <button
+              <Button
                 key={appointment.id}
-                type="button"
+                fill="none"
                 className="home-appointment-tile"
                 onClick={() => {
                   setSelectedDay(new Date());
@@ -146,9 +147,9 @@ export function HomeScreen() {
                 <span className="home-appointment-tile__time">{appointment.time}</span>
                 <strong>{appointment.clientName}</strong>
                 <span>{appointment.serviceType}</span>
-              </button>
+              </Button>
             ))}
-          </div>
+          </Grid>
         )}
       </Card>
 
@@ -163,37 +164,43 @@ export function HomeScreen() {
           </Button>
         </div>
 
-        <div className="hero-day-row" role="tablist" aria-label="Selecionar dia">
-          {weekDays.map((date) => {
-            const isActive = toDateKey(date) === toDateKey(selectedDay);
-            return (
-              <button
-                key={toDateKey(date)}
-                type="button"
-                className={isActive ? 'hero-day-chip hero-day-chip--active' : 'hero-day-chip'}
-                onClick={() => setSelectedDay(date)}
-              >
+        <Selector
+          className="hero-day-row"
+          value={[selectedDayKey]}
+          columns={7}
+          options={weekDays.map((date) => ({
+            value: toDateKey(date),
+            label: (
+              <span className="hero-day-chip">
                 <span>{date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
                 <strong>{date.getDate()}</strong>
-              </button>
-            );
-          })}
-        </div>
+              </span>
+            ),
+          }))}
+          onChange={(values) => {
+            const nextDateKey = values[0];
+            const nextDate = weekDays.find((date) => toDateKey(date) === nextDateKey);
 
-        <div className="hero-today-grid">
-          <button type="button" className="hero-today-card" onClick={() => goToRoute('agenda')}>
+            if (nextDate) {
+              setSelectedDay(nextDate);
+            }
+          }}
+        />
+
+        <Grid columns={3} gap={8} className="hero-today-grid">
+          <Button fill="none" className="hero-today-card" onClick={() => goToRoute('agenda')}>
             <strong>{summary.todayAppointments}</strong>
             <span>Hoje</span>
-          </button>
-          <button type="button" className="hero-today-card" onClick={() => goToRoute('agenda')}>
+          </Button>
+          <Button fill="none" className="hero-today-card" onClick={() => goToRoute('agenda')}>
             <strong>{summary.nextAppointments}</strong>
             <span>Próximos</span>
-          </button>
-          <button type="button" className="hero-today-card" onClick={() => goToRoute('atendimentos')}>
+          </Button>
+          <Button fill="none" className="hero-today-card" onClick={() => goToRoute('atendimentos')}>
             <strong>{summary.pendingFollowUps}</strong>
             <span>Pendências</span>
-          </button>
-        </div>
+          </Button>
+        </Grid>
       </Card>
 
       <Card className="soft-card">
