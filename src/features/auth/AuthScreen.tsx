@@ -1,4 +1,4 @@
-import { Button, Card, Form, Input, Popup } from 'antd-mobile';
+import { Button, Card, Divider, Form, Input, Popup } from 'antd-mobile';
 import { useMemo, useState } from 'react';
 
 type AuthMode = 'login' | 'signup';
@@ -168,11 +168,7 @@ export function AuthScreen({ mode, onGoogle, onEmailSubmit, onSwitchMode, isBusy
             ))}
           </div>
 
-          <div className="auth-divider" aria-hidden="true">
-            <span className="auth-divider__line" />
-            <span className="auth-divider__text">Ou continue com</span>
-            <span className="auth-divider__line" />
-          </div>
+          <Divider className="auth-divider">Ou continue com</Divider>
 
           <Button
             block
@@ -230,7 +226,7 @@ export function AuthScreen({ mode, onGoogle, onEmailSubmit, onSwitchMode, isBusy
                 { type: 'email', message: 'Informe um e-mail válido.' },
               ]}
             >
-              <Input placeholder="seuemail@dominio.com" autoComplete="email" clearable />
+              <Input type="email" placeholder="seuemail@dominio.com" autoComplete="email" clearable />
             </Form.Item>
 
             <Form.Item

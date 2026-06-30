@@ -2,6 +2,7 @@ import { AddOutline, CalendarOutline, ClockCircleOutline, UserAddOutline } from 
 import {
   Button,
   Card,
+  DatePicker,
   Form,
   Input,
   Popup,
@@ -27,7 +28,7 @@ import { useClients } from '../../hooks/useClients';
 import { isFirestoreUnavailableError } from '../../services/firestoreHealth';
 import { formatAttendanceDate } from '../../services/attendancesService';
 import { formatAppointmentDate } from '../../services/appointmentsService';
-import { parseCalendarDate } from '../../utils/date';
+import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Appointment, Attendance, Client, ClientStatus, ClientUpsertInput } from '../../types/domain';
 
 const statusTabs: Array<{ key: 'todos' | ClientStatus; title: string }> = [
@@ -82,6 +83,14 @@ function normalizeQuery(value: string) {
 
 function normalizeLabel(value: string) {
   return value.trim().toLowerCase();
+}
+
+function formatDateLabel(date: Date | null) {
+  if (!date) {
+    return 'Selecionar data';
+  }
+
+  return date.toLocaleDateString('pt-BR');
 }
 
 function parseDateTimeKey(dateValue: string, timeValue = '00:00') {
@@ -154,6 +163,7 @@ export function ClientsScreen() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [selectedBirthDate, setSelectedBirthDate] = useState<Date | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm<ClientFormValues>();
 
@@ -255,6 +265,7 @@ export function ClientsScreen() {
 
   function openCreateClient() {
     setEditingClient(null);
+    setSelectedBirthDate(null);
     form.resetFields();
     form.setFieldsValue({ active: true });
     setEditorVisible(true);
@@ -262,11 +273,11 @@ export function ClientsScreen() {
 
   function openEditClient(client: Client) {
     setEditingClient(client);
+    setSelectedBirthDate(client.birthDate ? parseCalendarDate(client.birthDate) : null);
     form.setFieldsValue({
       name: client.name,
       phone: client.phone,
       email: client.email,
-      birthDate: client.birthDate,
       notes: client.notes,
       active: client.status === 'ativo',
     });
@@ -276,6 +287,7 @@ export function ClientsScreen() {
   function closeEditor() {
     setEditorVisible(false);
     setEditingClient(null);
+    setSelectedBirthDate(null);
     form.resetFields();
   }
 
@@ -288,7 +300,10 @@ export function ClientsScreen() {
     try {
       setSubmitting(true);
       const values = await form.validateFields();
-      const payload = clientFormToPayload(values as ClientFormValues);
+      const payload = {
+        ...clientFormToPayload(values as ClientFormValues),
+        birthDate: selectedBirthDate ? toDateKey(selectedBirthDate) : undefined,
+      };
       const savedClient = editingClient
         ? await updateClient(editingClient.id, payload)
         : await createClient(payload, session.id);
@@ -550,16 +565,29 @@ export function ClientsScreen() {
               label="Telefone"
               rules={[{ required: true, message: 'Informe o telefone.' }]}
             >
-              <Input placeholder="(11) 99999-9999" />
+              <Input type="tel" placeholder="(11) 99999-9999" />
             </Form.Item>
 
             <Form.Item name="email" label="E-mail">
-              <Input placeholder="cliente@email.com" />
+              <Input type="email" placeholder="cliente@email.com" />
             </Form.Item>
 
-            <Form.Item name="birthDate" label="Data de nascimento">
-              <Input placeholder="DD/MM/AAAA" />
-            </Form.Item>
+            <div className="appointment-form-group">
+              <div className="appointment-form-group__label">Data de nascimento</div>
+              <DatePicker
+                value={selectedBirthDate}
+                onConfirm={(nextDate) => setSelectedBirthDate(nextDate)}
+                title="Selecionar data de nascimento"
+                confirmText="Selecionar"
+                cancelText="Cancelar"
+              >
+                {(_, actions) => (
+                  <Button block shape="rounded" fill="outline" onClick={actions.open}>
+                    {formatDateLabel(selectedBirthDate)}
+                  </Button>
+                )}
+              </DatePicker>
+            </div>
 
             <Form.Item name="notes" label="Observações">
               <TextArea rows={4} placeholder="Preferências, detalhes importantes ou observações curtas" />

@@ -1,6 +1,6 @@
 import { FolderOutline, UploadOutline } from 'antd-mobile-icons';
-import { Button, Card, Empty, Toast } from 'antd-mobile';
-import { useMemo, useRef, type ChangeEvent } from 'react';
+import { Card, Empty, ImageUploader, List, Toast, type ImageUploadItem } from 'antd-mobile';
+import { useMemo } from 'react';
 import { useAttachments } from '../hooks/useAttachments';
 import { formatAttachmentDate } from '../services/attachmentsService';
 
@@ -51,7 +51,6 @@ export function AttachmentsPanel({
   emptyTitle = 'Nenhum anexo salvo',
   emptyDescription = 'Envie arquivos para manter registros e imagens juntos no mesmo lugar.',
 }: AttachmentsPanelProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
   const { attachments, loading, error, uploading, uploadAttachment } = useAttachments(businessId, {
     clientId,
     attendanceId,
@@ -70,26 +69,15 @@ export function AttachmentsPanel({
     return 'Nenhum vínculo';
   }, [attendanceId, clientId]);
 
-  function handleUploadClick() {
+  async function handleImageUpload(file: File): Promise<ImageUploadItem> {
     if (!targetReady) {
       Toast.show({ content: 'Selecione um cliente ou atendimento para anexar.' });
-      return;
-    }
-
-    inputRef.current?.click();
-  }
-
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-
-    if (!file) {
-      return;
+      throw new Error('Selecione um cliente ou atendimento para anexar.');
     }
 
     if (!businessId || !ownerId) {
       Toast.show({ content: 'Faça login novamente para continuar.' });
-      return;
+      throw new Error('Faça login novamente para continuar.');
     }
 
     try {
@@ -100,8 +88,10 @@ export function AttachmentsPanel({
         attendanceId,
       });
       Toast.show({ content: 'Anexo enviado.' });
+      return { url: URL.createObjectURL(file) };
     } catch {
       Toast.show({ content: 'Não foi possível enviar o anexo.' });
+      throw new Error('Não foi possível enviar o anexo.');
     }
   }
 
@@ -112,19 +102,19 @@ export function AttachmentsPanel({
           <div className="section-label">{title}</div>
           <div className="section-title">{description || contextLabel}</div>
         </div>
-        <Button color="primary" fill="solid" size="small" shape="rounded" loading={uploading} onClick={handleUploadClick}>
-          <UploadOutline />
-          Enviar
-        </Button>
+        <ImageUploader
+          value={[]}
+          upload={handleImageUpload}
+          maxCount={1}
+          accept="image/*"
+          showUpload={targetReady && !uploading}
+        >
+          <span className="attachment-upload-button">
+            <UploadOutline />
+            Enviar
+          </span>
+        </ImageUploader>
       </div>
-
-      <input
-        ref={inputRef}
-        type="file"
-        hidden
-        accept="image/*,application/pdf,.txt,.doc,.docx,.xls,.xlsx"
-        onChange={handleFileChange}
-      />
 
       {loading ? (
         <p className="muted-text">Carregando anexos...</p>
@@ -133,25 +123,26 @@ export function AttachmentsPanel({
       ) : attachments.length === 0 ? (
         <Empty description={emptyDescription} imageStyle={{ width: 72, height: 72 }} />
       ) : (
-        <div className="attachment-list">
+        <List className="attachment-list">
           {attachments.map((attachment) => (
-            <button
+            <List.Item
               key={attachment.id}
-              type="button"
               className="attachment-item"
               onClick={() => openAttachment(attachment.fileUrl)}
+              prefix={(
+                <span className="attachment-item__icon">
+                  <FolderOutline />
+                </span>
+              )}
             >
-              <div className="attachment-item__icon">
-                <FolderOutline />
-              </div>
               <div className="attachment-item__copy">
                 <strong>{attachment.fileName}</strong>
                 <span>{attachmentTypeLabel(attachment.fileType)}</span>
                 <span>{attachment.createdAt ? formatAttachmentDate(attachment.createdAt) : 'Data sem registro'}</span>
               </div>
-            </button>
+            </List.Item>
           ))}
-        </div>
+        </List>
       )}
     </Card>
   );

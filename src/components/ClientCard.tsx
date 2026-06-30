@@ -1,5 +1,5 @@
 import { UserOutline } from 'antd-mobile-icons';
-import { Card } from 'antd-mobile';
+import { Avatar, Card, Ellipsis, Space } from 'antd-mobile';
 import type { Client } from '../types/domain';
 import { StatusTag } from './StatusTag';
 
@@ -17,9 +17,13 @@ export function ClientCard({ client, selected, onClick }: ClientCardProps) {
     >
       <div className="card-top-row">
         <div className="client-card__main">
-          <div className="client-card__avatar">{client.name.charAt(0)}</div>
-          <div className="section-title client-card__title">{client.name}</div>
-          <div className="client-card__phone">{client.phone}</div>
+          <Avatar className="client-card__avatar" src="" fallback={client.name.charAt(0)} />
+          <div className="section-title client-card__title">
+            <Ellipsis content={client.name} />
+          </div>
+          <div className="client-card__phone">
+            <Ellipsis content={client.phone} />
+          </div>
         </div>
         <div className="card-inline-badge">
           <UserOutline fontSize={14} />
@@ -27,11 +31,11 @@ export function ClientCard({ client, selected, onClick }: ClientCardProps) {
         </div>
       </div>
 
-      <div className="client-card__meta">
+      <Space direction="vertical" className="client-card__meta" block>
         <span>{client.lastAttendance ?? 'Sem atendimento ainda'}</span>
         <span>{client.nextAppointment ?? 'Sem agendamento'}</span>
         {client.notes ? <span>{client.notes}</span> : null}
-      </div>
+      </Space>
     </Card>
   );
 }

@@ -5,7 +5,7 @@ import {
   QuestionCircleOutline,
   UserOutline,
 } from 'antd-mobile-icons';
-import { Button, Card, Form, Input, List, Popup, Space, Toast } from 'antd-mobile';
+import { Avatar, Button, Card, Footer, Form, Grid, Input, List, Popup, Space, Toast } from 'antd-mobile';
 import { useEffect, useState } from 'react';
 import { useOrganization } from '../../hooks/useOrganization';
 import { updateBusinessProfileRecord, updateUserProfileRecord } from '../../services/organizationService';
@@ -179,13 +179,7 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
       <Card className="soft-card highlight-card">
         <div className="section-head">
           <div className="more-account">
-            <div className="more-account__avatar">
-              {userPhoto ? (
-                <img src={userPhoto} alt="" aria-hidden="true" className="more-account__image" />
-              ) : (
-                <span>{userInitials || 'MC'}</span>
-              )}
-            </div>
+            <Avatar className="more-account__avatar" src={userPhoto || ''} fallback={userInitials || 'MC'} />
             <div>
               <div className="section-label">Conta</div>
               <div className="section-title">{businessName}</div>
@@ -196,20 +190,20 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
             </div>
           </div>
         </div>
-        <div className="more-meta-grid">
-          <div>
+        <Grid columns={3} gap={10} className="more-meta-grid">
+          <Grid.Item>
             <strong>{roleLabel}</strong>
             <span>Papel</span>
-          </div>
-          <div>
+          </Grid.Item>
+          <Grid.Item>
             <strong>{businessSegment}</strong>
             <span>Segmento</span>
-          </div>
-          <div>
+          </Grid.Item>
+          <Grid.Item>
             <strong>{businessLabel}</strong>
             <span>Conta</span>
-          </div>
-        </div>
+          </Grid.Item>
+        </Grid>
         <p className="muted-text">ID do negócio: {session?.businessId}</p>
         <Button
           block
@@ -231,20 +225,20 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
             <div className="section-title">Owner, admin e attendant</div>
           </div>
         </div>
-        <div className="permission-list">
-          <div>
+        <Grid columns={1} gap={10} className="permission-list">
+          <Grid.Item>
             <strong>Owner</strong>
             <span>Controla a conta, o negócio e as configurações principais.</span>
-          </div>
-          <div>
+          </Grid.Item>
+          <Grid.Item>
             <strong>Admin</strong>
             <span>Gerencia rotina operacional, clientes, agenda e atendimentos.</span>
-          </div>
-          <div>
+          </Grid.Item>
+          <Grid.Item>
             <strong>Atendente</strong>
             <span>Foco na operação diária, com acesso simplificado ao MVP.</span>
-          </div>
-        </div>
+          </Grid.Item>
+        </Grid>
       </Card>
 
       <Card className="soft-card">
@@ -254,8 +248,8 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
             <div className="section-title">Push do sistema</div>
           </div>
         </div>
-        <div className="permission-list">
-          <div>
+        <Grid columns={1} gap={10} className="permission-list">
+          <Grid.Item>
             <strong>
               {pushEnabled ? 'Ativas neste aparelho' : 'Desativadas neste aparelho'}
             </strong>
@@ -266,8 +260,8 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
                   ? 'O navegador bloqueou notificações para este site.'
                   : 'Ative as notificações para receber lembretes e avisos do sistema.'}
             </span>
-          </div>
-        </div>
+          </Grid.Item>
+        </Grid>
         <Button
           block
           color="primary"
@@ -319,6 +313,8 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
           ))}
         </List>
       </Card>
+
+      <Footer label="Meu Cliente" content="App mobile-first para clientes, agenda e atendimentos." />
 
       <Popup
         visible={profileVisible}

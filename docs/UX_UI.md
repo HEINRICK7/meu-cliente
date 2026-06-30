@@ -88,6 +88,28 @@ O Meu Cliente deve ter aparência de aplicativo mobile moderno, mesmo sendo uma 
 - Usar Toast para feedback.
 - Usar EmptyState amigavel em telas sem dados.
 
+### Regras de formularios
+
+- Usar componentes do `antd-mobile` como fonte principal de UI do app.
+- Nao criar controles HTML nativos visiveis quando houver componente equivalente no `antd-mobile`.
+- Campos de data devem usar `DatePicker` do `antd-mobile`.
+- Campos de hora devem usar `Picker` do `antd-mobile`.
+- Campos de e-mail, telefone e dinheiro devem usar componentes do `antd-mobile` com tipo/teclado adequado.
+- Campos de agenda ou selecao de cliente devem usar busca, lista, `Selector`, `Picker` ou componentes equivalentes do `antd-mobile`.
+- Evitar texto livre quando o dado tiver formato previsivel ou lista de opcoes.
+
+### Catalogo oficial de componentes
+
+Usar preferencialmente os componentes do `antd-mobile` abaixo, conforme o tipo de interacao:
+
+- Base e layout: `Button`, `AutoCenter`, `Divider`, `Grid`, `SafeArea`, `Space`.
+- Navegacao: `CapsuleTabs`, `JumboTabs`, `NavBar`, `SideBar`, `TabBar`, `Tabs`.
+- Dados: `Avatar`, `Card`, `Collapse`, `Ellipsis`, `FloatingPanel`, `Image`, `ImageViewer`, `InfiniteScroll`, `List`, `PageIndicator`, `Segmented`, `Steps`, `Swiper`, `Tag`, `Footer`.
+- Entrada: `Cascader`, `CascaderView`, `CheckList`, `Checkbox`, `Form`, `Input`, `Picker`, `PickerView`, `Radio`, `Rate`, `SearchBar`, `Selector`, `Slider`, `Stepper`, `Switch`, `TextArea`.
+- Feedback: `ActionSheet`, `Dialog`, `Empty`, `ErrorBlock`, `Loading`, `Mask`, `Modal`, `Popover`, `Popup`, `ProgressBar`, `ProgressCircle`, `PullToRefresh`, `Result`, `Skeleton`, `SwipeAction`, `Toast`.
+- Orientacao: `Badge`, `NoticeBar`.
+- Outros: `ConfigProvider`, `Calendar`, `CalendarPicker`, `CalendarPickerView`, `Dropdown`, `FloatingBubble`, `ImageUploader`, `NumberKeyboard`, `PasscodeInput`, `ResultPage`, `TreeSelect`, `VirtualInput`.
+
 ### Comportamento no desktop
 
 - Centralizar o conteudo.
