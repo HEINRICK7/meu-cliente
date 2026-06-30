@@ -757,6 +757,54 @@ button {
   background: rgba(235, 90, 60, 0.06);
 }
 
+.client-list {
+  --border-inner: none;
+  border: 1px solid var(--mc-border);
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.client-list__item {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.client-list__item--selected {
+  background: rgba(248, 216, 90, 0.28);
+}
+
+.client-list__avatar {
+  width: 38px;
+  height: 38px;
+  background: rgba(235, 90, 60, 0.12);
+  color: var(--mc-primary-dark);
+  font-weight: 800;
+}
+
+.client-list__content {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.client-list__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.client-list__title-row strong {
+  min-width: 0;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.client-list__content span {
+  min-width: 0;
+  font-size: 12px;
+  color: var(--mc-text-soft);
+}
+
 .card-inline-badge {
   display: inline-flex;
   align-items: center;
