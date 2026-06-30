@@ -1,6 +1,5 @@
-import { AddOutline, CalendarOutline, ClockCircleOutline, RightOutline, UserAddOutline, UserOutline } from 'antd-mobile-icons';
+import { AddOutline, CalendarOutline, ClockCircleOutline, UserAddOutline, UserOutline } from 'antd-mobile-icons';
 import {
-  Avatar,
   Button,
   Card,
   DatePicker,
@@ -32,7 +31,6 @@ import { formatAttendanceDate } from '../../services/attendancesService';
 import { formatAppointmentDate } from '../../services/appointmentsService';
 import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Appointment, Attendance, Client, ClientStatus, ClientUpsertInput } from '../../types/domain';
-import { StatusTag } from '../../components/StatusTag';
 
 const statusTabs: Array<{ key: 'todos' | ClientStatus; title: string }> = [
   { key: 'todos', title: 'Todos' },
@@ -336,82 +334,51 @@ export function ClientsScreen() {
         ))}
       </Tabs>
 
-      <Card className="soft-card highlight-card">
-        <div className="section-head">
-          <div>
-            <div className="section-label">Visão rápida</div>
-            <div className="section-title">Cadastro e consulta</div>
-          </div>
-          <Button color="primary" fill="solid" size="small" shape="rounded" onClick={openCreateClient}>
-            <UserAddOutline />
-            Novo
-          </Button>
-        </div>
-
-        <div className="client-summary-grid">
-          <div>
-            <strong>{allClients.length}</strong>
-            <span>Total</span>
-          </div>
-          <div>
-            <strong>{allClients.filter((client) => client.status === 'ativo').length}</strong>
-            <span>Ativos</span>
-          </div>
-          <div>
-            <strong>{allClients.filter((client) => client.nextAppointment).length}</strong>
-            <span>Com agenda</span>
-          </div>
-        </div>
-      </Card>
-
       {error ? <EmptyState title="Erro ao carregar clientes" description={error} /> : null}
 
-      <Card className="soft-card">
-        <div className="section-head">
-          <div>
-            <div className="section-label">Lista</div>
-            <div className="section-title">Clientes encontrados</div>
-          </div>
-          <Button size="small" color="primary" fill="solid" shape="rounded" onClick={openCreateClient}>
-            <AddOutline />
-            Novo
-          </Button>
-        </div>
-
-        {clients.length === 0 ? (
+      {clients.length === 0 ? (
+        <Card className="soft-card">
           <EmptyState
             title="Nenhum cliente encontrado"
             description="Tente outro nome, telefone ou status."
             actionLabel="Novo cliente"
             onAction={openCreateClient}
           />
-        ) : (
-          <List className="client-list">
-            {clients.map((client) => (
+        </Card>
+      ) : (
+        <List
+          className="client-list"
+          header={
+            <div className="client-list__header">
+              <span>Clientes encontrados</span>
+              <Button size="mini" color="primary" fill="none" onClick={openCreateClient}>
+                <AddOutline />
+                Novo
+              </Button>
+            </div>
+          }
+        >
+          {clients.map((client) => {
+            const description = [client.phone || 'Sem telefone cadastrado', client.email].filter(Boolean).join(' · ');
+
+            return (
               <List.Item
                 key={client.id}
                 className={client.id === selectedClient?.id ? 'client-list__item client-list__item--selected' : 'client-list__item'}
-                prefix={<Avatar className="client-list__avatar" src="" fallback={<UserOutline />} />}
-                extra={<RightOutline />}
+                prefix={
+                  <span className="client-list__avatar" aria-hidden="true">
+                    <UserOutline />
+                  </span>
+                }
+                description={<Ellipsis content={description} />}
                 onClick={() => setSelectedClientId(client.id)}
               >
-                <div className="client-list__content">
-                  <div className="client-list__title-row">
-                    <strong>
-                      <Ellipsis content={client.name} />
-                    </strong>
-                    <StatusTag status={client.status} />
-                  </div>
-                  <span>
-                    <Ellipsis content={client.phone || 'Sem telefone cadastrado'} />
-                  </span>
-                  {client.nextAppointment ? <span>{client.nextAppointment}</span> : null}
-                </div>
+                <Ellipsis content={client.name} />
               </List.Item>
-            ))}
-          </List>
-        )}
-      </Card>
+            );
+          })}
+        </List>
+      )}
 
       <Space direction="vertical" block>
         <Button color="primary" fill="solid" block size="large" shape="rounded" onClick={openCreateClient}>
