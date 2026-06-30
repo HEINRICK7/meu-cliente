@@ -60,7 +60,7 @@ jobs:
 
       - run: npm run build
 
-      - name: Deploy to Firebase Hosting
+      - name: Deploy to Firebase Hosting and Firestore Rules
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB }}
         run: |
@@ -68,7 +68,7 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
 
           set +e
-          npx firebase-tools@15.22.3 deploy --only hosting --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-deploy.log
+          npx firebase-tools@15.22.3 deploy --only hosting,firestore:rules --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-deploy.log
           DEPLOY_EXIT=${PIPESTATUS[0]}
           set -e
 
