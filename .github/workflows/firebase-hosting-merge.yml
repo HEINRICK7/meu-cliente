@@ -68,7 +68,7 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
 
           set +e
-          npx firebase-tools@15.22.3 deploy --only hosting --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-hosting-deploy.log
+          npx -y firebase-tools@15.22.3 deploy --only hosting --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-hosting-deploy.log
           DEPLOY_EXIT=${PIPESTATUS[0]}
           set -e
 
@@ -93,7 +93,7 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$HOME/firebase-service-account.json"
 
           set +e
-          npx firebase-tools@15.22.3 deploy --only firestore:rules --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-firestore-rules-deploy.log
+          npx -y firebase-tools@15.22.3 deploy --only firestore:rules --project meu-cliente-f17bb --non-interactive 2>&1 | tee firebase-firestore-rules-deploy.log
           RULES_EXIT=${PIPESTATUS[0]}
           set -e
 
@@ -103,7 +103,7 @@ jobs:
           fi
 
           if grep -q "firebaserules.googleapis.com.*403" firebase-firestore-rules-deploy.log || grep -q "The caller does not have permission" firebase-firestore-rules-deploy.log; then
-            echo "::warning::Firestore Rules deploy skipped because the Firebase service account lacks Firestore Rules permissions. Grant the service account Firebase Rules Admin / firebaserules.rulesets.* and releases.* permissions, then rerun this workflow."
+            echo "::warning::Firestore Rules deploy skipped because the Firebase service account lacks Firebase Rules permissions. Grant roles/firebaserules.admin (Firebase Rules Admin) to the service account stored in FIREBASE_SERVICE_ACCOUNT_MEU_CLIENTE_F17BB, then rerun this workflow."
             exit 0
           fi
 
