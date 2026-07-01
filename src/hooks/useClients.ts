@@ -38,7 +38,7 @@ export function useClients(businessId: string | null, ownerId: string | null): U
     );
 
     return () => unsubscribe();
-  }, [businessId, ownerId]);
+  }, [businessId]);
 
   const sortedClients = useMemo(
     () => [...clients].sort((left, right) => (right.createdAt || '').localeCompare(left.createdAt || '')),

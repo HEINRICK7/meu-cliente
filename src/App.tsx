@@ -42,13 +42,6 @@ export default function App() {
   const { attendances } = useAttendances(session?.businessId ?? null, session?.id ?? null);
   const [authBusy, setAuthBusy] = useState(false);
   const activeRoute = isAppRoute(route) ? route : 'inicio';
-  const [mountedRoutes, setMountedRoutes] = useState<Record<AppRoute, boolean>>(() => ({
-    inicio: activeRoute === 'inicio',
-    clientes: activeRoute === 'clientes',
-    agenda: activeRoute === 'agenda',
-    atendimentos: activeRoute === 'atendimentos',
-    mais: activeRoute === 'mais',
-  }));
 
   useEffect(() => {
     if (loading) {
@@ -89,23 +82,6 @@ export default function App() {
       unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    if (!isAppRoute(route)) {
-      return;
-    }
-
-    setMountedRoutes((current) => {
-      if (current[route]) {
-        return current;
-      }
-
-      return {
-        ...current,
-        [route]: true,
-      };
-    });
-  }, [route]);
 
   const handleLogout = async () => {
     try {
@@ -218,6 +194,26 @@ export default function App() {
     return items;
   }, [appointments, attendances, session]);
 
+  function renderActiveScreen() {
+    if (activeRoute === 'clientes') {
+      return <ClientsScreen />;
+    }
+
+    if (activeRoute === 'agenda') {
+      return <ScheduleScreen />;
+    }
+
+    if (activeRoute === 'atendimentos') {
+      return <AttendancesScreen />;
+    }
+
+    if (activeRoute === 'mais') {
+      return <MoreScreen onLogout={handleLogout} session={session} />;
+    }
+
+    return <HomeScreen />;
+  }
+
   if (loading) {
     return <LoadingState lines={2} />;
   }
@@ -249,26 +245,7 @@ export default function App() {
       session={session}
       notifications={notifications}
     >
-      {([
-        ['inicio', <HomeScreen key="inicio" />],
-        ['clientes', <ClientsScreen key="clientes" />],
-        ['agenda', <ScheduleScreen key="agenda" />],
-        ['atendimentos', <AttendancesScreen key="atendimentos" />],
-        ['mais', <MoreScreen key="mais" onLogout={handleLogout} session={session} />],
-      ] as const).map(([appRoute, element]) => {
-        const isVisible = activeRoute === appRoute;
-        const shouldRender = mountedRoutes[appRoute] || isVisible;
-
-        if (!shouldRender) {
-          return null;
-        }
-
-        return (
-          <section key={appRoute} className="app-route-panel" hidden={!isVisible} aria-hidden={!isVisible}>
-            {element}
-          </section>
-        );
-      })}
+      <section className="app-route-panel">{renderActiveScreen()}</section>
     </AppShell>
   );
 }

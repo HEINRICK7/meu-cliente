@@ -97,18 +97,22 @@ function isFutureAppointment(dateValue: string, timeValue: string) {
   return stamp >= Date.now() - 60 * 1000;
 }
 
-  function goToRoute(route: 'agenda' | 'atendimentos') {
-    if (typeof window !== 'undefined') {
-      window.location.hash = `#/${route}`;
-    }
+function goToRoute(route: 'agenda' | 'atendimentos') {
+  if (typeof window !== 'undefined') {
+    window.location.hash = `#/${route}`;
+  }
+}
+
+function getSaveErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
   }
 
-  function getSaveErrorMessage(error: unknown) {
-    if (typeof error !== 'object' || error === null) {
-      return 'Não foi possível salvar o cliente.';
-    }
+  if (typeof error !== 'object' || error === null) {
+    return 'Não foi possível salvar o cliente.';
+  }
 
-    const code = 'code' in error ? String((error as { code?: string }).code) : '';
+  const code = 'code' in error ? String((error as { code?: string }).code) : '';
 
   if (code.includes('permission-denied')) {
     return 'Sem permissão para salvar este cliente. Verifique as regras do Firebase.';
