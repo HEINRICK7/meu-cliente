@@ -1393,11 +1393,11 @@ button {
 .schedule-month-button .adm-button-content {
   display: grid;
   justify-items: center;
-  gap: 3px;
+  gap: 2px;
 }
 
 .schedule-month-button strong {
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.1;
   text-transform: capitalize;
 }
@@ -1494,6 +1494,17 @@ button {
   background: #ffffff;
 }
 
+.schedule-create-button.adm-button {
+  min-height: 34px;
+  padding: 6px 11px;
+  font-size: 13px;
+}
+
+.schedule-create-button svg {
+  width: 15px;
+  height: 15px;
+}
+
 .schedule-timeline {
   display: grid;
   gap: 4px;
@@ -1546,14 +1557,14 @@ button {
 
 .schedule-appointment-card.adm-button,
 .schedule-free-slot.adm-button {
-  min-height: 58px;
   width: 100%;
-  padding: 12px;
   border-radius: 18px;
   text-align: left;
 }
 
 .schedule-appointment-card.adm-button {
+  min-height: 58px;
+  padding: 12px;
   --background-color: #ffffff;
   --border-color: var(--mc-border);
   --text-color: var(--mc-text);
@@ -1616,6 +1627,8 @@ button {
 }
 
 .schedule-free-slot.adm-button {
+  min-height: 44px;
+  padding: 8px 10px;
   --background-color: #fbfbfb;
   --border-color: #ececec;
   --text-color: var(--mc-text-soft);
@@ -1625,14 +1638,14 @@ button {
 .schedule-free-slot .adm-button-content {
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: var(--mc-text-soft);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .schedule-free-slot svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
 }
 
 .schedule-status-card .adm-card-body {
@@ -1676,15 +1689,15 @@ button {
 .schedule-floating-action.adm-floating-bubble {
   --initial-position-bottom: calc(92px + env(safe-area-inset-bottom));
   --initial-position-right: 20px;
-  --size: 54px;
+  --size: 44px;
   --background: var(--mc-primary);
   --color: #ffffff;
-  box-shadow: 0 16px 28px rgba(235, 90, 60, 0.28);
+  box-shadow: 0 12px 22px rgba(235, 90, 60, 0.26);
 }
 
 .schedule-floating-action svg {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
 .appointment-detail-sheet {

@@ -381,7 +381,6 @@ export function ScheduleScreen() {
             <strong>
               {focusedDate.toLocaleDateString('pt-BR', {
                 month: 'long',
-                year: 'numeric',
               })}
             </strong>
           </Button>
@@ -430,7 +429,14 @@ export function ScheduleScreen() {
             <div className="section-label">Dia selecionado</div>
             <div className="section-title">{formatAppointmentDate(focusedDateKey)}</div>
           </div>
-          <Button size="small" color="primary" fill="solid" shape="rounded" onClick={() => openCreateAppointment()}>
+          <Button
+            size="small"
+            color="primary"
+            fill="solid"
+            shape="rounded"
+            className="schedule-create-button"
+            onClick={() => openCreateAppointment()}
+          >
             <AddOutline />
             Novo
           </Button>

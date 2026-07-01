@@ -246,3 +246,13 @@ O sistema precisa responder rapidamente a tres perguntas:
 - O Lead deve usar firebase antes de mexer em Auth, Firestore, Storage ou rules.
 - O Lead deve usar reviewer e tester antes de fechar o modulo.
 - O Lead deve perguntar antes de push, salvo autorizacao explicita de modo automatico para o modulo.
+
+## Plano UI - Ajustes da Agenda
+
+- Header da Agenda: em `src/features/schedule/ScheduleScreen.tsx`, manter o label `Agenda` e exibir apenas o nome do mes no botao central, sem o ano.
+- Header da Agenda: em `src/styles/global.css`, ajustar a tipografia do mes se necessario para evitar quebra/colisao com o label.
+- Slots livres: em `src/styles/global.css`, reduzir altura interna dos cards `schedule-free-slot`, mantendo alvo de toque minimo de 44px.
+- Slots livres: reduzir padding, gap, fonte e icones para deixar a lista de horarios mais compacta.
+- Botao `+ Novo`: em `ScheduleScreen.tsx` e `global.css`, manter a acao de criar agendamento, mas aplicar classe compacta para reduzir proporcao visual.
+- Botao flutuante `+`: em `global.css`, reduzir o tamanho do `schedule-floating-action` de forma proporcional, mantendo no minimo 44px e sem colidir com a bottom navigation.
+- Nao alterar comportamento de navegacao, criacao, edicao ou selecao de horarios.
