@@ -548,23 +548,26 @@ button {
 
 .hero-day-row {
   margin-top: 14px;
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
 }
 
-.hero-day-row .adm-grid-item {
-  min-width: 0;
+.hero-day-row::-webkit-scrollbar {
+  display: none;
 }
 
 .hero-calendar-card .hero-day-chip.adm-button {
   --background-color: #ffffff;
   --border-color: var(--mc-border);
   --text-color: var(--mc-text);
-  width: 100%;
-  min-width: 0;
-  min-height: 52px;
-  padding: 8px 2px;
+  flex: 0 0 46px;
+  width: 46px;
+  min-width: 46px;
+  min-height: 62px;
+  padding: 8px 4px;
   border-radius: 18px;
   border: 1px solid var(--mc-border);
   text-align: center;
@@ -590,7 +593,7 @@ button {
 }
 
 .hero-calendar-card .hero-day-chip strong {
-  font-size: 16px;
+  font-size: 17px;
   line-height: 1;
   font-weight: 800;
 }
@@ -1945,7 +1948,10 @@ button {
 }
 
 .bottom-nav .adm-tab-bar-item-icon {
+  display: grid;
+  place-items: center;
   font-size: 21px;
+  min-height: 26px;
 }
 
 .bottom-nav__icon {
@@ -1961,17 +1967,25 @@ button {
 }
 
 .bottom-nav .adm-badge {
-  display: grid;
+  position: relative;
+  display: inline-grid;
   place-items: center;
+  width: 24px;
+  height: 24px;
+  overflow: visible;
 }
 
 .bottom-nav .adm-badge-content {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  transform: none;
   min-width: 14px;
   height: 14px;
-  padding: 0 4px;
+  padding: 0 3px;
   border: 2px solid #ffffff;
   font-size: 9px;
-  line-height: 10px;
+  line-height: 1;
 }
 
 .bottom-nav .adm-tab-bar-item-title {

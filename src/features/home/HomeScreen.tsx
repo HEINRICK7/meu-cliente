@@ -163,24 +163,23 @@ export function HomeScreen() {
           </Button>
         </div>
 
-        <Grid columns={7} gap={8} className="hero-day-row">
+        <div className="hero-day-row" aria-label="Dias da semana">
           {weekDays.map((date) => {
             const isActive = toDateKey(date) === toDateKey(selectedDay);
 
             return (
-              <Grid.Item key={toDateKey(date)}>
-                <Button
-                  fill="none"
-                  className={isActive ? 'hero-day-chip hero-day-chip--active' : 'hero-day-chip'}
-                  onClick={() => setSelectedDay(date)}
-                >
-                  <span>{date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
-                  <strong>{date.getDate()}</strong>
-                </Button>
-              </Grid.Item>
+              <Button
+                key={toDateKey(date)}
+                fill="none"
+                className={isActive ? 'hero-day-chip hero-day-chip--active' : 'hero-day-chip'}
+                onClick={() => setSelectedDay(date)}
+              >
+                <span>{date.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '')}</span>
+                <strong>{date.getDate()}</strong>
+              </Button>
             );
           })}
-        </Grid>
+        </div>
 
         <Grid columns={3} gap={8} className="hero-today-grid">
           <Button fill="none" className="hero-today-card" onClick={() => goToRoute('agenda')}>
