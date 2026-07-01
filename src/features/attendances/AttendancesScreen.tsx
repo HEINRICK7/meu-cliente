@@ -27,9 +27,11 @@ import { useAttendances } from '../../hooks/useAttendances';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
+import { isFirestoreUnavailableError } from '../../services/firestoreHealth';
 import { formatAttendanceDate, isAttendanceOnDay } from '../../services/attendancesService';
 import { formatAppointmentDate } from '../../services/appointmentsService';
 import { parseCalendarDate, toDateKey } from '../../utils/date';
+import { isFormValidationError } from '../../utils/form';
 import type { Attendance, AttendanceUpsertInput } from '../../types/domain';
 
 type AttendanceFormValues = {
@@ -50,6 +52,36 @@ function goToRoute(route: 'clientes' | 'agenda') {
   if (typeof window !== 'undefined') {
     window.location.hash = `#/${route}`;
   }
+}
+
+function getSaveErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error !== 'object' || error === null) {
+    return 'Não foi possível salvar o atendimento.';
+  }
+
+  const code = 'code' in error ? String((error as { code?: string }).code) : '';
+
+  if (code.includes('permission-denied')) {
+    return 'Sem permissão para salvar este atendimento. Verifique as regras do Firebase.';
+  }
+
+  if (code.includes('unavailable')) {
+    return 'O Firebase está indisponível agora. Tente novamente.';
+  }
+
+  if (isFirestoreUnavailableError(error)) {
+    return 'O Firestore ainda não foi criado neste projeto Firebase. Crie o banco padrão para continuar salvando dados.';
+  }
+
+  if (String(error).includes('demorou demais')) {
+    return 'A operação demorou demais. Tente novamente.';
+  }
+
+  return 'Não foi possível salvar o atendimento. Tente novamente.';
 }
 
 export function AttendancesScreen() {
@@ -186,8 +218,10 @@ export function AttendancesScreen() {
         content: editingAttendance ? 'Atendimento atualizado.' : 'Atendimento registrado.',
       });
       closeEditor();
-    } catch {
-      // Validation already explains what is missing.
+    } catch (error) {
+      if (!isFormValidationError(error)) {
+        Toast.show({ content: getSaveErrorMessage(error) });
+      }
     } finally {
       setSaving(false);
     }
@@ -224,7 +258,7 @@ export function AttendancesScreen() {
             <span>Próxima ação</span>
           </div>
         </div>
-          <div className="quick-actions-grid" style={{ marginTop: 16 }}>
+        <div className="quick-actions-grid" style={{ marginTop: 16 }}>
           <Button color="primary" fill="solid" shape="rounded" onClick={openCreateAttendance}>
             <ChatAddOutline />
             Registrar atendimento

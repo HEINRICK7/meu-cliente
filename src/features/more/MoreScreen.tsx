@@ -16,6 +16,7 @@ import {
   getPushPermissionStatus,
 } from '../../services/pushNotificationsService';
 import { isFirestoreUnavailableError } from '../../services/firestoreHealth';
+import { isFormValidationError } from '../../utils/form';
 import type { AuthSession } from '../../types/domain';
 
 const actions = [
@@ -35,6 +36,36 @@ type AccountFormValues = {
   businessName: string;
   segment: string;
 };
+
+function getProfileSaveErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  if (typeof error !== 'object' || error === null) {
+    return 'Não foi possível salvar o perfil.';
+  }
+
+  const code = 'code' in error ? String((error as { code?: string }).code) : '';
+
+  if (code.includes('permission-denied')) {
+    return 'Sem permissão para salvar este perfil. Verifique as regras do Firebase.';
+  }
+
+  if (code.includes('unavailable')) {
+    return 'O Firebase está indisponível agora. Tente novamente.';
+  }
+
+  if (isFirestoreUnavailableError(error)) {
+    return 'O Firestore ainda não foi criado neste projeto Firebase. Crie o banco padrão para continuar salvando dados.';
+  }
+
+  if (String(error).includes('demorou demais')) {
+    return 'A operação demorou demais. Tente novamente.';
+  }
+
+  return 'Não foi possível salvar o perfil. Tente novamente.';
+}
 
 export function MoreScreen({ onLogout, session }: MoreScreenProps) {
   const { businessProfile, userProfile } = useOrganization(session?.id ?? null, session?.businessId ?? null);
@@ -129,14 +160,9 @@ export function MoreScreen({ onLogout, session }: MoreScreenProps) {
       Toast.show({ content: 'Perfil atualizado.' });
       setProfileVisible(false);
     } catch (error) {
-      if (!isFirestoreUnavailableError(error)) {
-        // Validation already explains what is missing.
-        return;
+      if (!isFormValidationError(error)) {
+        Toast.show({ content: getProfileSaveErrorMessage(error) });
       }
-
-      Toast.show({
-        content: 'O Firestore ainda não foi criado neste projeto Firebase. Crie o banco padrão para continuar salvando dados.',
-      });
     } finally {
       setSaving(false);
     }
