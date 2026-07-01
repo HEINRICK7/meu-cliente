@@ -1,28 +1,18 @@
-import { AddOutline, CalendarOutline, CheckCircleOutline, RightOutline } from 'antd-mobile-icons';
-import { Button, CapsuleTabs, Card, DatePicker, Form, Input, List, Picker, Popup, SearchBar, Selector, Space, Toast } from 'antd-mobile';
+import { AddOutline, CheckCircleOutline, LeftOutline, RightOutline } from 'antd-mobile-icons';
+import { Button, Card, DatePicker, FloatingBubble, Form, Grid, Input, List, Picker, Popup, SearchBar, Selector, Space, Toast } from 'antd-mobile';
 import { useMemo, useState } from 'react';
-import { AppointmentCard } from '../../components/AppointmentCard';
 import { EmptyState } from '../../components/EmptyState';
 import { LoadingState } from '../../components/LoadingState';
 import { useAppointments } from '../../hooks/useAppointments';
 import { useAuth } from '../../hooks/useAuth';
 import { useClients } from '../../hooks/useClients';
 import { isFirestoreUnavailableError } from '../../services/firestoreHealth';
-import {
-  formatAppointmentDate,
-  isAppointmentInRange,
-  isAppointmentOnDay,
-} from '../../services/appointmentsService';
+import { formatAppointmentDate } from '../../services/appointmentsService';
 import { parseCalendarDate, toDateKey } from '../../utils/date';
 import type { Appointment, AppointmentStatus, AppointmentUpsertInput } from '../../types/domain';
-
-type ScheduleView = 'hoje' | 'proximos' | 'semana';
-
-const views: Array<{ key: ScheduleView; title: string }> = [
-  { key: 'hoje', title: 'Hoje' },
-  { key: 'proximos', title: 'Próximos' },
-  { key: 'semana', title: 'Semana' },
-];
+import { AppointmentDetailSheet } from './AppointmentDetailSheet';
+import { ScheduleTimeline } from './ScheduleTimeline';
+import { ScheduleWeekStrip } from './ScheduleWeekStrip';
 
 const statusOptions: Array<{ value: AppointmentStatus; label: string }> = [
   { value: 'agendado', label: 'Agendado' },
@@ -39,6 +29,13 @@ const timeOptions = Array.from({ length: 48 }, (_, index) => {
   const value = `${hour}:${minute}`;
 
   return { label: value, value };
+});
+
+const businessHourSlots = Array.from({ length: 21 }, (_, index) => {
+  const totalMinutes = 8 * 60 + index * 30;
+  const hour = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const minute = String(totalMinutes % 60).padStart(2, '0');
+  return `${hour}:${minute}`;
 });
 
 type AppointmentFormValues = {
@@ -84,6 +81,24 @@ function sortBySchedule(left: Appointment, right: Appointment) {
   return leftStamp - rightStamp;
 }
 
+function buildWeekDays(referenceDate: Date) {
+  const start = new Date(referenceDate);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    return date;
+  });
+}
+
+function shiftDays(date: Date, days: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
 function getSaveErrorMessage(error: unknown) {
   if (error instanceof Error && error.message) {
     return error.message;
@@ -122,11 +137,17 @@ export function ScheduleScreen() {
     session?.id ?? null,
   );
 
-  const [view, setView] = useState<ScheduleView>('hoje');
   const [editorVisible, setEditorVisible] = useState(false);
+  const [detailVisible, setDetailVisible] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [saving, setSaving] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [focusedDate, setFocusedDate] = useState(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  });
   const [selectedTime, setSelectedTime] = useState('09:00');
   const [selectedStatus, setSelectedStatus] = useState<AppointmentStatus>('agendado');
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -134,43 +155,40 @@ export function ScheduleScreen() {
   const [form] = Form.useForm<AppointmentFormValues>();
 
   const todayKey = toDateKey(new Date());
-  const weekEnd = useMemo(() => {
-    const end = new Date();
-    end.setDate(end.getDate() + 6);
-    return end;
-  }, []);
+  const focusedDateKey = toDateKey(focusedDate);
+  const weekDays = useMemo(() => buildWeekDays(focusedDate), [focusedDate]);
 
   const sortedAppointments = useMemo(
     () => [...appointments].sort(sortBySchedule),
     [appointments],
   );
 
-  const todayAppointments = useMemo(
-    () => sortedAppointments.filter((appointment) => isAppointmentOnDay(appointment.date)),
+  const todayAppointments = useMemo(() => sortedAppointments.filter((appointment) => appointment.date === todayKey), [sortedAppointments, todayKey]);
+  const focusedDateAppointments = useMemo(
+    () => sortedAppointments.filter((appointment) => appointment.date === focusedDateKey),
+    [focusedDateKey, sortedAppointments],
+  );
+  const upcomingAppointments = useMemo(() => sortedAppointments.filter((appointment) => appointment.date > todayKey), [sortedAppointments, todayKey]);
+  const appointmentCountsByDate = useMemo(
+    () =>
+      sortedAppointments.reduce<Record<string, number>>((acc, appointment) => {
+        acc[appointment.date] = (acc[appointment.date] ?? 0) + 1;
+        return acc;
+      }, {}),
     [sortedAppointments],
   );
+  const timelineSlots = useMemo(() => {
+    const busyTimes = new Set(focusedDateAppointments.map((appointment) => appointment.time));
+    const busySlots = focusedDateAppointments.map((appointment) => ({
+      time: appointment.time,
+      appointment,
+    }));
+    const freeSlots = businessHourSlots
+      .filter((time) => !busyTimes.has(time))
+      .map((time) => ({ time }));
 
-  const upcomingAppointments = useMemo(
-    () => sortedAppointments.filter((appointment) => appointment.date > todayKey),
-    [sortedAppointments, todayKey],
-  );
-
-  const weekAppointments = useMemo(
-    () => sortedAppointments.filter((appointment) => isAppointmentInRange(appointment.date, new Date(), weekEnd)),
-    [sortedAppointments, weekEnd],
-  );
-
-  const viewAppointments = useMemo(() => {
-    if (view === 'hoje') {
-      return todayAppointments;
-    }
-
-    if (view === 'proximos') {
-      return upcomingAppointments;
-    }
-
-    return weekAppointments;
-  }, [todayAppointments, upcomingAppointments, view, weekAppointments]);
+    return [...busySlots, ...freeSlots].sort((left, right) => left.time.localeCompare(right.time));
+  }, [focusedDateAppointments]);
 
   const nextAppointment = todayAppointments[0] || upcomingAppointments[0] || sortedAppointments[0] || null;
   const recentClients = useMemo(() => clients.slice(0, 8), [clients]);
@@ -190,9 +208,9 @@ export function ScheduleScreen() {
       .slice(0, 8);
   }, [clientSearch, clients, recentClients]);
 
-  function resetEditorState() {
-    setSelectedDate(new Date());
-    setSelectedTime('09:00');
+  function resetEditorState(date = focusedDate, time = '09:00') {
+    setSelectedDate(date);
+    setSelectedTime(time);
     setSelectedStatus('agendado');
     setSelectedClientId(null);
     setClientSearch('');
@@ -203,9 +221,9 @@ export function ScheduleScreen() {
     });
   }
 
-  function openCreateAppointment() {
+  function openCreateAppointment(date = focusedDate, time = '09:00') {
     setEditingAppointment(null);
-    resetEditorState();
+    resetEditorState(date, time);
     setEditorVisible(true);
   }
 
@@ -232,6 +250,26 @@ export function ScheduleScreen() {
     setEditorVisible(false);
     setEditingAppointment(null);
     resetEditorState();
+  }
+
+  function goToToday() {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    setFocusedDate(date);
+  }
+
+  function openAppointmentDetails(appointment: Appointment) {
+    setSelectedAppointment(appointment);
+    setDetailVisible(true);
+  }
+
+  function closeAppointmentDetails() {
+    setDetailVisible(false);
+    setSelectedAppointment(null);
+  }
+
+  function openFreeSlot(time: string) {
+    openCreateAppointment(focusedDate, time);
   }
 
   function handleClientSearchChange(value: string) {
@@ -300,14 +338,26 @@ export function ScheduleScreen() {
     }
   }
 
-  function openAppointmentAction(appointment: Appointment | null, label: string) {
-    if (!appointment) {
-      Toast.show({ content: 'Nenhum agendamento disponível agora.' });
+  async function handleChangeAppointmentStatus(appointment: Appointment, status: AppointmentStatus) {
+    if (!appointment.clientId) {
+      Toast.show({ content: 'Este agendamento não tem cliente vinculado.' });
       return;
     }
 
-    Toast.show({ content: `${label} abre o editor do agendamento.` });
-    openEditAppointment(appointment);
+    try {
+      await updateAppointment(appointment.id, {
+        clientId: appointment.clientId,
+        clientName: appointment.clientName,
+        date: appointment.date,
+        time: appointment.time,
+        serviceType: appointment.serviceType,
+        status,
+        notes: appointment.notes,
+      });
+      Toast.show({ content: 'Status atualizado.' });
+    } catch (error) {
+      Toast.show({ content: getSaveErrorMessage(error) });
+    }
   }
 
   if (loading) {
@@ -315,99 +365,110 @@ export function ScheduleScreen() {
   }
 
   return (
-    <div className="screen-stack">
-      <Card className="soft-card hero-meeting-card hero-meeting-card--agenda">
+    <div className="screen-stack schedule-screen">
+      <Card className="soft-card schedule-calendar-card">
+        <div className="schedule-calendar-header">
+          <Button
+            fill="none"
+            className="schedule-icon-button"
+            onClick={() => setFocusedDate((date) => shiftDays(date, -7))}
+          >
+            <LeftOutline />
+          </Button>
+
+          <Button fill="none" className="schedule-month-button" onClick={goToToday}>
+            <span className="section-label">Agenda</span>
+            <strong>
+              {focusedDate.toLocaleDateString('pt-BR', {
+                month: 'long',
+                year: 'numeric',
+              })}
+            </strong>
+          </Button>
+
+          <Button
+            fill="none"
+            className="schedule-icon-button"
+            onClick={() => setFocusedDate((date) => shiftDays(date, 7))}
+          >
+            <RightOutline />
+          </Button>
+        </div>
+
+        <ScheduleWeekStrip
+          days={weekDays}
+          selectedDate={focusedDate}
+          appointmentCounts={appointmentCountsByDate}
+          onSelectDate={setFocusedDate}
+        />
+
+        <Grid columns={3} gap={8} className="schedule-day-summary">
+          <Grid.Item>
+            <div>
+              <strong>{todayAppointments.length}</strong>
+              <span>Hoje</span>
+            </div>
+          </Grid.Item>
+          <Grid.Item>
+            <div>
+              <strong>{focusedDateAppointments.length}</strong>
+              <span>No dia</span>
+            </div>
+          </Grid.Item>
+          <Grid.Item>
+            <div>
+              <strong>{nextAppointment ? nextAppointment.time : '--:--'}</strong>
+              <span>Próximo</span>
+            </div>
+          </Grid.Item>
+        </Grid>
+      </Card>
+
+      <Card className="soft-card schedule-day-card">
         <div className="section-head">
           <div>
-            <div className="section-label">Agenda</div>
-            <div className="section-title">Quem precisa ser atendido agora</div>
+            <div className="section-label">Dia selecionado</div>
+            <div className="section-title">{formatAppointmentDate(focusedDateKey)}</div>
           </div>
-          <Button size="small" color="primary" fill="solid" shape="rounded" onClick={openCreateAppointment}>
+          <Button size="small" color="primary" fill="solid" shape="rounded" onClick={() => openCreateAppointment()}>
             <AddOutline />
             Novo
           </Button>
         </div>
 
-        <div className="mini-summary-grid">
-          <div>
-            <strong>{todayAppointments.length}</strong>
-            <span>Hoje</span>
-          </div>
-          <div>
-            <strong>{viewAppointments.length}</strong>
-            <span>No período</span>
-          </div>
-          <div>
-            <strong>{nextAppointment ? nextAppointment.time : '--:--'}</strong>
-            <span>Próximo horário</span>
-          </div>
-        </div>
-      </Card>
-
-      <CapsuleTabs className="filter-tabs" activeKey={view} onChange={(key) => setView(key as ScheduleView)}>
-        {views.map((tab) => (
-          <CapsuleTabs.Tab key={tab.key} title={tab.title} />
-        ))}
-      </CapsuleTabs>
-
-      <Card className="soft-card">
-        <div className="section-head">
-          <div>
-            <div className="section-label">Agenda</div>
-            <div className="section-title">Compromissos do período</div>
-          </div>
-          <Button size="small" color="primary" fill="outline" shape="rounded" onClick={openCreateAppointment}>
-            <CalendarOutline />
-            <RightOutline />
-            Ações
-          </Button>
-        </div>
-
-        {error ? <EmptyState title="Erro ao carregar a agenda" description={error} /> : null}
-
-        {!error && viewAppointments.length === 0 ? (
-          <EmptyState
-            title="Sem compromissos por enquanto"
-            description="Quando houver agenda, ela aparece aqui como cards grandes e simples."
-            actionLabel="Novo agendamento"
-            onAction={openCreateAppointment}
-          />
+        {error ? (
+          <EmptyState title="Erro ao carregar a agenda" description={error} />
         ) : (
-          <div className="screen-stack">
-            {viewAppointments.map((appointment, index) => (
-              <AppointmentCard
-                key={appointment.id}
-                appointment={appointment}
-                emphasis={view === 'hoje' && index === 0}
-                onClick={() => openEditAppointment(appointment)}
-              />
-            ))}
-          </div>
+          <ScheduleTimeline
+            slots={timelineSlots}
+            onSelectAppointment={openAppointmentDetails}
+            onSelectFreeSlot={openFreeSlot}
+          />
         )}
       </Card>
 
-      <Card className="soft-card">
-        <div className="section-head">
-          <div>
-            <div className="section-label">Próximas ações</div>
-            <div className="section-title">Operações rápidas</div>
-          </div>
-        </div>
-        <List className="compact-list">
-          <List.Item onClick={() => openAppointmentAction(nextAppointment, 'Confirmar horário')}>
-            <span className="more-list__item">
-              <CheckCircleOutline />
-              <span>Confirmar horário</span>
-            </span>
-          </List.Item>
-          <List.Item onClick={() => openAppointmentAction(nextAppointment, 'Reagendar atendimento')}>
-            <span className="more-list__item">
-              <CalendarOutline />
-              <span>Reagendar atendimento</span>
-            </span>
-          </List.Item>
-        </List>
+      <Card className="soft-card schedule-status-card">
+        <div className="section-label">Legenda</div>
+        <Space wrap>
+          <span className="schedule-legend schedule-legend--free">Livre</span>
+          <span className="schedule-legend schedule-legend--scheduled">Agendado</span>
+          <span className="schedule-legend schedule-legend--confirmed">Confirmado</span>
+          <span className="schedule-legend schedule-legend--cancelled">Cancelado</span>
+          <span className="schedule-legend schedule-legend--missed">Falta</span>
+        </Space>
       </Card>
+
+      <FloatingBubble className="schedule-floating-action" onClick={() => openCreateAppointment()}>
+        <AddOutline />
+      </FloatingBubble>
+
+      <AppointmentDetailSheet
+        visible={detailVisible}
+        appointment={selectedAppointment}
+        onClose={closeAppointmentDetails}
+        onEdit={openEditAppointment}
+        onChangeStatus={handleChangeAppointmentStatus}
+      />
 
       <Popup
         visible={editorVisible}
